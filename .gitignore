@@ -51,4 +51,4 @@ setup/
 
 .github/
 *.md
-backend
+*.env
