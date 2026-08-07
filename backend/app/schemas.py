@@ -77,8 +77,7 @@ class VaultUpdateRequest(BaseModel):
 
 
 class VaultUpdateResponse(BaseModel):
-    error: str  # Error code (e.g., "invalid_request", "email_exists")
-    message: str  # Human-readable message
+    updated_at: datetime
 
 class ChangePasswordRequest(BaseModel):
     current_password_proof: str  # Proof client knows current password

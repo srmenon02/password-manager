@@ -2,6 +2,7 @@ import { type FormEvent, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useVault } from '@/context/VaultContext'
 import type { VaultEntryInput } from '@/models/vault'
+import { generateSecurePassword } from '@/crypto/passwordGenerator'
 
 const defaultFormState: VaultEntryInput = {
   site: '',
@@ -112,6 +113,22 @@ export default function VaultPage() {
     }
   }
 
+  function handleGeneratePassword() {
+    setError(null)
+    const site = formState.site.trim()
+
+    if (!site) {
+      setError('Enter a site first, then generate a password')
+      return
+    }
+
+    const generatedPassword = generateSecurePassword({ length: 24 })
+    setFormState((prev) => ({
+      ...prev,
+      password: generatedPassword,
+    }))
+  }
+
   if (!isUnlocked || !vaultData) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -175,13 +192,22 @@ export default function VaultPage() {
                 className="px-4 py-2 border border-gray-300 rounded-md"
                 placeholder="Username"
               />
-              <input
-                type="text"
-                value={formState.password}
-                onChange={(event) => setFormState((prev) => ({ ...prev, password: event.target.value }))}
-                className="px-4 py-2 border border-gray-300 rounded-md"
-                placeholder="Password"
-              />
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={formState.password}
+                  onChange={(event) => setFormState((prev) => ({ ...prev, password: event.target.value }))}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-md"
+                  placeholder="Password"
+                />
+                <button
+                  type="button"
+                  onClick={handleGeneratePassword}
+                  className="px-3 py-2 bg-slate-100 text-slate-800 rounded-md font-medium hover:bg-slate-200 transition"
+                >
+                  Generate
+                </button>
+              </div>
               <input
                 type="text"
                 value={formState.notes || ''}
