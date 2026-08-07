@@ -1,4 +1,6 @@
 
+import { generateRandomSalt } from './utils'
+
 /**
  * Derives an AES-256-GCM key from a master password and salt
  * @param password - The user's master password
@@ -43,9 +45,9 @@ export async function deriveKey(
  */
 export function generateSalt(): Uint8Array {
     try{
-        return crypto.getRandomValues(new Uint8Array(16));
+        return generateRandomSalt(16)
     }
     catch (error) {
-        throw new Error('Salt generation failed: ' + error);
+        throw new Error('Salt generation failed: ' + error)
     }
 }

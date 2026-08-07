@@ -6,12 +6,14 @@ import srp from 'secure-remote-password/client'
 import { deriveKey } from '@/crypto/keyDerivation'
 import { unwrapKey } from '@/crypto/keyWrapping'
 import { decryptVault, base64ToArrayBuffer } from '@/crypto/vaultEncryption'
+import { useVault } from '@/context/VaultContext'
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const navigate = useNavigate()
+  const { setVaultSession } = useVault()
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -50,9 +52,6 @@ export default function LoginPage() {
       const AHex = bytesToHex(base64ToBytes(A))
 
       const clientSession = srp.deriveSession(aHex, serverBHex, saltHex, email, privateKey)
-      console.log('client K:', clientSession.key)
-      console.log('client M1:', clientSession.proof)
-      console.log('email used:', email)
       const clientProofM1 = bytesToBase64(hexToBytes(clientSession.proof))
 
       const verifyResponse = await loginVerify({
@@ -79,7 +78,11 @@ export default function LoginPage() {
         vaultKey
       )
 
-      console.log('Vault unlocked:', vaultData)
+      setVaultSession({
+        vaultData,
+        vaultKey,
+        token: verifyResponse.token,
+      })
       navigate('/vault')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed')

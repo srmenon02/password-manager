@@ -1,5 +1,11 @@
 
 import type { VaultData, EncryptedVault } from '@shared/types'
+import {
+  arrayBufferToBase64,
+  base64ToArrayBuffer,
+  generateRandomIv,
+} from './utils'
+import { deserializeVaultData, serializeVaultData } from '@/models/vault'
 
 /**
  * Encrypts vault data using AES-256-GCM
@@ -11,26 +17,23 @@ export async function encryptVault(
   data: VaultData,
   key: CryptoKey
 ): Promise<EncryptedVault> {
-  const serializedVault = JSON.stringify(data);
-  const plainText = new TextEncoder().encode(serializedVault);
-  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const serializedVault = serializeVaultData(data)
+  const plainText = new TextEncoder().encode(serializedVault)
+  const iv = generateRandomIv()
+  const ivForCrypto = new Uint8Array(iv)
   const ciphertext = await crypto.subtle.encrypt(
     {
-        name: "AES-GCM",
-        iv: iv,
+        name: 'AES-GCM',
+        iv: ivForCrypto,
         tagLength: 128,
     },
     key,
     plainText
-  );
-  try{
-    return {
-        ciphertext: arrayBufferToBase64(ciphertext),
-        iv: arrayBufferToBase64(iv.buffer),
-    };
-  }
-  catch (error) {
-    throw new Error('Vault encryption failed: ' + error);
+  )
+
+  return {
+    ciphertext: arrayBufferToBase64(ciphertext),
+    iv: arrayBufferToBase64(ivForCrypto),
   }
 }
 
@@ -45,56 +48,24 @@ export async function decryptVault(
   encrypted: EncryptedVault,
   key: CryptoKey
 ): Promise<VaultData> {
-  const decodedCiphertext = base64ToArrayBuffer(encrypted.ciphertext);
-  const decodedIv = base64ToArrayBuffer(encrypted.iv);
+  const decodedCiphertext = base64ToArrayBuffer(encrypted.ciphertext)
+  const decodedIv = base64ToArrayBuffer(encrypted.iv)
 
   const decrypted = await crypto.subtle.decrypt(
     {
-      name: "AES-GCM",
+      name: 'AES-GCM',
       iv: decodedIv,
       tagLength: 128,
     },
     key,
     decodedCiphertext
-  );
-  const decryptedText = new TextDecoder().decode(decrypted);
+  )
+  const decryptedText = new TextDecoder().decode(decrypted)
+
   try {
-    return JSON.parse(decryptedText, (key, value) => {
-      if (key === 'createdAt' || key === 'updatedAt') {
-        return new Date(value);
-      }
-      return value;
-    });
+    return deserializeVaultData(decryptedText)
   } catch (error) {
-    throw new Error('Vault decryption failed: ' + error);
+    throw new Error('Vault decryption failed: ' + error)
   }
 }
-
-// Helper functions (you can implement or use a library)
-export function arrayBufferToBase64(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer);
-  let binary = '';
-  for (let i = 0; i < bytes.length; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  try{
-    return btoa(binary);
-  }
-  catch (error) {
-    throw new Error('Base64 encoding failed: ' + error);
-  }
-}
-
-export function base64ToArrayBuffer(base64: string): ArrayBuffer {
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  try{
-    return bytes.buffer;
-  }
-  catch (error) {
-    throw new Error('Base64 decoding failed: ' + error);
-  }
-}
+export { arrayBufferToBase64, base64ToArrayBuffer } from './utils'

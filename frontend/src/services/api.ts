@@ -6,6 +6,7 @@ import type {
   LoginVerifyRequest,
   LoginVerifyResponse,
   VaultResponse,
+  VaultUpdateRequest,
   ErrorResponse 
 } from '@shared/types'
 
@@ -116,5 +117,33 @@ export async function getVault(token: string): Promise<VaultResponse> {
       throw error
     }
     throw new Error('An unexpected error occurred while fetching vault')
+  }
+}
+
+export async function updateVault(
+  token: string,
+  data: VaultUpdateRequest
+): Promise<{ updated_at?: string; message?: string }> {
+  try {
+    const response = await fetch(`${API_URL}/api/vault`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    })
+
+    if (!response.ok) {
+      const errorData: ErrorResponse = await response.json()
+      throw new Error(errorData.message || 'Failed to update vault')
+    }
+
+    return response.json()
+  } catch (error) {
+    if (error instanceof Error) {
+      throw error
+    }
+    throw new Error('An unexpected error occurred while updating vault')
   }
 }
