@@ -67,8 +67,8 @@ export interface VaultResponse {
 }
 
 export interface VaultUpdateRequest {
-  encryptedBlob: string
-  iv: string
+  encrypted_blob: string
+  vault_iv: string
 }
 
 // Error response

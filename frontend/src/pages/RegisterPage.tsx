@@ -7,6 +7,8 @@ import type { RegisterRequest, VaultData } from '@shared/types'
 import { wrapKey } from '@/crypto/keyWrapping'
 import { registerUser } from '@/services/api'
 import { useNavigate } from 'react-router-dom'
+import { useVault } from '@/context/VaultContext'
+import { createEmptyVault } from '@/models/vault'
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('')
@@ -20,6 +22,7 @@ export default function RegisterPage() {
     confirmPassword: '',
   })
   const navigate = useNavigate()
+  const { setVaultSession } = useVault()
   function validateForm(): boolean {
     const errors = {
       email: '',
@@ -74,10 +77,7 @@ export default function RegisterPage() {
 
       const { protectedKey, iv: protectedKeyIv } = await wrapKey(vaultKey, masterKey);
 
-      const emptyVault: VaultData = {
-        entries: [],
-        version: 1
-      }
+      const emptyVault: VaultData = createEmptyVault()
 
       const { ciphertext: encryptedBlob, iv: vaultIv } =
           await encryptVault(emptyVault, vaultKey);
@@ -96,9 +96,13 @@ export default function RegisterPage() {
 
       localStorage.setItem('vaultkey_token', response.token)
 
-      navigate('/vault');
+      setVaultSession({
+        vaultData: emptyVault,
+        vaultKey,
+        token: response.token,
+      })
 
-      console.log('Registration data:', { email, password })
+      navigate('/vault');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed')
     } finally {

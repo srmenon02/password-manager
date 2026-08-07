@@ -1,4 +1,8 @@
-import { arrayBufferToBase64, base64ToArrayBuffer } from './vaultEncryption'
+import {
+  arrayBufferToBase64,
+  base64ToArrayBuffer,
+  generateRandomIv,
+} from './utils'
 
 /**
  * Generates a random vault encryption key
@@ -30,11 +34,12 @@ export async function wrapKey(
   derivedKey: CryptoKey
 ): Promise<{ protectedKey: string; iv: string }> {
   const rawVaultKey = await crypto.subtle.exportKey('raw', vaultKey)
-  const iv = crypto.getRandomValues(new Uint8Array(12))
+  const iv = generateRandomIv()
+  const ivForCrypto = new Uint8Array(iv)
   const encryptVaultKey = await crypto.subtle.encrypt(
     {
       name: 'AES-GCM',
-      iv: iv,
+      iv: ivForCrypto,
     },
     derivedKey,
     rawVaultKey
@@ -42,7 +47,7 @@ export async function wrapKey(
   try {
     return {
       protectedKey: arrayBufferToBase64(encryptVaultKey),
-      iv: arrayBufferToBase64(iv.buffer),
+      iv: arrayBufferToBase64(ivForCrypto),
     }
   } catch (e) {
     throw new Error('Key wrapping failed: ' + e)
