@@ -52,3 +52,5 @@ setup/
 .github/
 *.md
 *.env
+frontend/stich*/
+frontend/stitch_serif_minimalist_vault 2/

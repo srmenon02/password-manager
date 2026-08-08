@@ -1,7 +1,23 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useVault } from '@/context/VaultContext'
 import type { VaultEntryInput } from '@/models/vault'
+
+const UPPER = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+const LOWER = 'abcdefghijklmnopqrstuvwxyz'
+const NUMBERS = '0123456789'
+const SYMBOLS = '!@#$%^&*()-_=+[]{};:,.<>?'
+
+function generatePassword(length: number) {
+  const charset = UPPER + LOWER + NUMBERS + SYMBOLS
+  let result = [UPPER, LOWER, NUMBERS, SYMBOLS].map((s) => s[Math.floor(Math.random() * s.length)]).join('')
+  while (result.length < length) result += charset[Math.floor(Math.random() * charset.length)]
+  const chars = result.slice(0, length).split('')
+  for (let i = chars.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));[chars[i], chars[j]] = [chars[j], chars[i]]
+  }
+  return chars.join('')
+}
 
 const defaultFormState: VaultEntryInput = {
   site: '',
@@ -26,6 +42,7 @@ export default function VaultPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
     const token = localStorage.getItem('vaultkey_token')
@@ -34,15 +51,23 @@ export default function VaultPage() {
     }
   }, [navigate])
 
-  const sortedEntries = useMemo(() => {
+  const filteredEntries = useMemo(() => {
     if (!vaultData) {
       return []
     }
 
-    return [...vaultData.entries].sort((a, b) =>
+    const ordered = [...vaultData.entries].sort((a, b) =>
       a.site.localeCompare(b.site, undefined, { sensitivity: 'base' })
     )
-  }, [vaultData])
+    if (!searchQuery.trim()) {
+      return ordered
+    }
+    const query = searchQuery.toLowerCase()
+    return ordered.filter((entry) =>
+      entry.site.toLowerCase().includes(query) ||
+      entry.username.toLowerCase().includes(query)
+    )
+  }, [searchQuery, vaultData])
 
   function handleLogout() {
     localStorage.clear()
@@ -112,160 +137,183 @@ export default function VaultPage() {
     }
   }
 
+  async function handleCopyPassword(password: string) {
+    try {
+      await navigator.clipboard.writeText(password)
+      setSaveMessage('Password copied')
+    } catch {
+      setError('Failed to copy password')
+    }
+  }
+
   if (!isUnlocked || !vaultData) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="container mx-auto px-4 py-8">
-          <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-xl p-8 text-center">
-            <h1 className="text-2xl font-bold text-gray-900 mb-3">Vault Locked</h1>
-            <p className="text-gray-600 mb-6">Sign in to decrypt and edit your vault.</p>
-            <button
-              onClick={() => navigate('/login')}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-md font-medium hover:bg-indigo-700 transition"
-            >
-              Go to Login
-            </button>
-          </div>
+      <div className="min-h-screen flex items-center justify-center bg-paper px-6">
+        <div className="max-w-2xl mx-auto bg-surface-container-low rounded-lg shadow-xl p-8 text-center border border-surface-dim">
+          <h1 className="text-2xl font-bold text-ink mb-3">Vault Locked</h1>
+          <p className="text-on-surface-variant mb-6">Sign in to decrypt and edit your vault.</p>
+          <button
+            onClick={() => navigate('/login')}
+            className="vault-btn-primary px-4 py-2 font-body-md font-bold"
+          >
+            Go to Login
+          </button>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-white rounded-lg shadow-xl p-8">
-            <div className="flex justify-between items-center mb-8">
-              <h1 className="text-3xl font-bold text-gray-900">
-                Your Vault
-              </h1>
-              <button
-                onClick={handleLogout}
-                className="px-4 py-2 bg-gray-600 text-white rounded-md font-medium hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition"
-              >
-                Logout
-              </button>
-            </div>
+    <div className="min-h-screen flex flex-col font-body-md text-body-md bg-paper text-ink">
+      <header className="w-full h-16 bg-paper flex justify-between items-center px-gutter max-w-full z-50 sticky top-0 border-b border-surface-dim">
+        <Link to="/" className="font-headline-md text-headline-md text-primary tracking-tighter hover:opacity-75 transition-opacity">VaultKey</Link>
+        <nav className="hidden md:flex gap-8 items-center font-body-md text-body-md">
+          <span className="text-on-surface-variant font-body-md cursor-pointer hover:text-pink transition-colors duration-200">Vault</span>
+          <button onClick={() => navigate('/generator')} className="text-on-surface-variant font-body-md cursor-pointer hover:text-pink transition-colors duration-200">Generator</button>
+        </nav>
+        <div className="flex gap-4 items-center">
+          <button className="vault-btn-secondary px-4 py-2 font-body-md hidden md:block" onClick={handleLogout}>Log Out</button>
+          <button
+            className="vault-btn-primary px-4 py-2 font-body-md font-bold"
+            onClick={() => document.getElementById('vault-entry-form')?.scrollIntoView({ behavior: 'smooth' })}
+          >
+            Create Login
+          </button>
+        </div>
+      </header>
 
-            {error && (
-              <div className="mb-4 p-3 rounded-md border border-red-200 bg-red-50 text-red-800 text-sm">
-                {error}
-              </div>
+      <main className="flex-grow flex flex-col pt-hero-offset px-margin-safe pb-24">
+        <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-8">
+          <div className="w-full md:w-2/3 ml-0 md:ml-[15%]">
+            <h1 className="font-headline-xl text-headline-xl mb-4 text-ink font-bold">Secure Vault</h1>
+          </div>
+          <div className="w-full md:w-1/3 flex items-center relative">
+            <span className="material-symbols-outlined absolute left-0 text-ink">search</span>
+            <input
+              className="input-line w-full pl-8 py-2 font-body-md text-body-md placeholder:text-on-surface-variant text-ink"
+              placeholder="Search logins..."
+              type="text"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+            />
+          </div>
+        </div>
+
+        {error && <div className="mb-4 p-3 rounded-md border border-red-200 bg-red-50 text-red-800 text-sm">{error}</div>}
+        {saveMessage && <div className="mb-4 p-3 rounded-md border border-green-200 bg-green-50 text-green-800 text-sm">{saveMessage}</div>}
+
+        <form id="vault-entry-form" onSubmit={handleSubmitEntry} className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10 bg-taupe border-2 border-ink p-6">
+          <input
+            type="text"
+            value={formState.site}
+            onChange={(event) => setFormState((prev) => ({ ...prev, site: event.target.value }))}
+            className="input-line px-2 py-2"
+            placeholder="Site"
+          />
+          <input
+            type="text"
+            value={formState.username}
+            onChange={(event) => setFormState((prev) => ({ ...prev, username: event.target.value }))}
+            className="input-line px-2 py-2"
+            placeholder="Username"
+          />
+          <div className="flex gap-2 items-center">
+            <input
+              type="text"
+              value={formState.password}
+              onChange={(event) => setFormState((prev) => ({ ...prev, password: event.target.value }))}
+              className="input-line px-2 py-2 flex-1"
+              placeholder="Password"
+            />
+            <button
+              type="button"
+              className="vault-btn-secondary px-3 py-2 font-body-md whitespace-nowrap"
+              onClick={() => setFormState((prev) => ({ ...prev, password: generatePassword(16) }))}
+            >
+              Generate
+            </button>
+          </div>
+          <input
+            type="text"
+            value={formState.notes || ''}
+            onChange={(event) => setFormState((prev) => ({ ...prev, notes: event.target.value }))}
+            className="input-line px-2 py-2"
+            placeholder="Notes"
+          />
+
+          <div className="md:col-span-2 flex gap-3">
+            <button type="submit" className="vault-btn-primary px-4 py-2 font-body-md font-bold">
+              {editingId ? 'Update Entry' : 'Add Entry'}
+            </button>
+            {editingId && (
+              <button type="button" onClick={resetForm} className="vault-btn-secondary px-4 py-2 font-body-md">
+                Cancel
+              </button>
             )}
 
-            {saveMessage && (
-              <div className="mb-4 p-3 rounded-md border border-green-200 bg-green-50 text-green-800 text-sm">
-                {saveMessage}
-              </div>
-            )}
+            <button
+              type="button"
+              onClick={handleSaveVault}
+              disabled={isSaving}
+              className="vault-btn-secondary px-4 py-2 font-body-md disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSaving ? 'Saving...' : 'Save Vault'}
+            </button>
+          </div>
+        </form>
 
-            <form onSubmit={handleSubmitEntry} className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-              <input
-                type="text"
-                value={formState.site}
-                onChange={(event) => setFormState((prev) => ({ ...prev, site: event.target.value }))}
-                className="px-4 py-2 border border-gray-300 rounded-md"
-                placeholder="Site"
-              />
-              <input
-                type="text"
-                value={formState.username}
-                onChange={(event) => setFormState((prev) => ({ ...prev, username: event.target.value }))}
-                className="px-4 py-2 border border-gray-300 rounded-md"
-                placeholder="Username"
-              />
-              <input
-                type="text"
-                value={formState.password}
-                onChange={(event) => setFormState((prev) => ({ ...prev, password: event.target.value }))}
-                className="px-4 py-2 border border-gray-300 rounded-md"
-                placeholder="Password"
-              />
-              <input
-                type="text"
-                value={formState.notes || ''}
-                onChange={(event) => setFormState((prev) => ({ ...prev, notes: event.target.value }))}
-                className="px-4 py-2 border border-gray-300 rounded-md"
-                placeholder="Notes"
-              />
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 relative">
+          <div className="col-span-1 md:col-span-12">
+            <div className="flex flex-col gap-6">
+              {filteredEntries.length === 0 && (
+                <div className="flex items-center justify-center border border-surface-dim bg-surface-container-lowest p-6 rounded-lg shadow-sm">
+                  <p className="text-on-surface-variant">No entries yet.</p>
+                </div>
+              )}
 
-              <div className="md:col-span-2 flex gap-3">
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-md font-medium hover:bg-indigo-700 transition"
-                >
-                  {editingId ? 'Update Entry' : 'Add Entry'}
-                </button>
-                {editingId && (
-                  <button
-                    type="button"
-                    onClick={resetForm}
-                    className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md font-medium hover:bg-gray-300 transition"
-                  >
-                    Cancel
-                  </button>
-                )}
-              </div>
-            </form>
+              {filteredEntries.map((entry, index) => (
+                <div key={entry.id} className="flex flex-col md:flex-row md:items-center md:justify-between border border-surface-dim bg-surface-container-lowest p-6 rounded-lg group relative overflow-hidden shadow-sm hover:border-mint transition-colors gap-4">
+                  <div className="flex items-center gap-6 z-10 relative">
+                    <span className="font-body-lg text-body-lg text-on-surface-variant font-bold">{String(index + 1).padStart(2, '0')}</span>
+                    <div>
+                      <h3 className="font-headline-md text-headline-md mb-1 text-ink group-hover:text-primary transition-colors">{entry.site}</h3>
+                      <p className="font-body-md text-body-md text-on-surface">{entry.username}</p>
+                      {entry.notes && <p className="text-sm text-on-surface-variant mt-1">{entry.notes}</p>}
+                    </div>
+                  </div>
 
-            <div className="overflow-x-auto rounded-md border border-gray-200">
-              <table className="min-w-full bg-white">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="text-left text-xs font-semibold text-gray-600 uppercase px-4 py-3">Site</th>
-                    <th className="text-left text-xs font-semibold text-gray-600 uppercase px-4 py-3">Username</th>
-                    <th className="text-left text-xs font-semibold text-gray-600 uppercase px-4 py-3">Password</th>
-                    <th className="text-left text-xs font-semibold text-gray-600 uppercase px-4 py-3">Notes</th>
-                    <th className="text-right text-xs font-semibold text-gray-600 uppercase px-4 py-3">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedEntries.length === 0 && (
-                    <tr>
-                      <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
-                        No entries yet.
-                      </td>
-                    </tr>
-                  )}
-                  {sortedEntries.map((entry) => (
-                    <tr key={entry.id} className="border-t border-gray-100">
-                      <td className="px-4 py-3 text-sm text-gray-800">{entry.site}</td>
-                      <td className="px-4 py-3 text-sm text-gray-800">{entry.username}</td>
-                      <td className="px-4 py-3 text-sm text-gray-800 font-mono">{entry.password}</td>
-                      <td className="px-4 py-3 text-sm text-gray-700">{entry.notes || '—'}</td>
-                      <td className="px-4 py-3 text-right">
-                        <button
-                          onClick={() => handleEditStart(entry.id)}
-                          className="text-indigo-600 hover:text-indigo-700 text-sm mr-4"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => removeEntry(entry.id)}
-                          className="text-red-600 hover:text-red-700 text-sm"
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="mt-6">
-              <button
-                onClick={handleSaveVault}
-                disabled={isSaving}
-                className="px-4 py-2 bg-emerald-600 text-white rounded-md font-medium hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-              >
-                {isSaving ? 'Saving...' : 'Save Vault'}
-              </button>
+                  <div className="flex items-center gap-4 z-10 relative flex-wrap">
+                    <span className="bg-surface-dim px-3 py-1 rounded-full font-label-caps text-label-caps text-ink font-bold">Stored</span>
+                    <button
+                      className="w-10 h-10 border border-ink flex items-center justify-center hover:bg-mint hover:border-mint transition-colors bg-white"
+                      onClick={() => handleCopyPassword(entry.password)}
+                      aria-label="Copy Password"
+                    >
+                      <span className="material-symbols-outlined text-ink">content_copy</span>
+                    </button>
+                    <button className="vault-btn-secondary px-3 py-1" onClick={() => handleEditStart(entry.id)}>
+                      Edit
+                    </button>
+                    <button className="vault-btn-secondary px-3 py-1" onClick={() => removeEntry(entry.id)}>
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
-      </div>
+
+        <div className="mt-8">
+          <button className="vault-btn-secondary px-4 py-2 font-body-md" onClick={handleLogout}>
+            Log Out
+          </button>
+        </div>
+      </main>
+
+      <footer className="w-full py-12 bg-paper border-t border-surface-dim flex flex-col md:flex-row justify-between items-center px-gutter gap-4 mt-auto">
+        <div className="font-headline-md text-headline-md text-primary font-bold">VaultKey</div>
+      </footer>
     </div>
   )
 }
