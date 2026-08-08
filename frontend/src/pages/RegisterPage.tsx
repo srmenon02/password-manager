@@ -1,12 +1,11 @@
 import { FormEvent, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { generateSalt, deriveKey } from '@/crypto/keyDerivation'
 import { generateSRPVerifier } from '@/crypto/srp'
 import { arrayBufferToBase64, encryptVault } from '@/crypto/vaultEncryption'
 import type { RegisterRequest, VaultData } from '@shared/types'
 import { wrapKey } from '@/crypto/keyWrapping'
 import { registerUser } from '@/services/api'
-import { useNavigate } from 'react-router-dom'
 import { useVault } from '@/context/VaultContext'
 import { createEmptyVault } from '@/models/vault'
 
@@ -14,6 +13,8 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [validationErrors, setValidationErrors] = useState({
@@ -23,6 +24,7 @@ export default function RegisterPage() {
   })
   const navigate = useNavigate()
   const { setVaultSession } = useVault()
+
   function validateForm(): boolean {
     const errors = {
       email: '',
@@ -63,24 +65,19 @@ export default function RegisterPage() {
     setLoading(true)
 
     try {
-      const salt = generateSalt();
-
-      const masterKey = await deriveKey(password, salt);
-
-      const authVerifier = await generateSRPVerifier(email, password, salt);
+      const salt = generateSalt()
+      const masterKey = await deriveKey(password, salt)
+      const authVerifier = await generateSRPVerifier(email, password, salt)
 
       const vaultKey = await crypto.subtle.generateKey(
-        {name: 'AES-GCM', length: 256 },
+        { name: 'AES-GCM', length: 256 },
         true,
         ['encrypt', 'decrypt']
-      );
+      )
 
-      const { protectedKey, iv: protectedKeyIv } = await wrapKey(vaultKey, masterKey);
-
+      const { protectedKey, iv: protectedKeyIv } = await wrapKey(vaultKey, masterKey)
       const emptyVault: VaultData = createEmptyVault()
-
-      const { ciphertext: encryptedBlob, iv: vaultIv } =
-          await encryptVault(emptyVault, vaultKey);
+      const { ciphertext: encryptedBlob, iv: vaultIv } = await encryptVault(emptyVault, vaultKey)
 
       const registerData: RegisterRequest = {
         email,
@@ -89,10 +86,10 @@ export default function RegisterPage() {
         protected_key: protectedKey,
         protected_key_iv: protectedKeyIv,
         encrypted_blob: encryptedBlob,
-        vault_iv: vaultIv
+        vault_iv: vaultIv,
       }
-      
-      const response = await registerUser(registerData);
+
+      const response = await registerUser(registerData)
 
       localStorage.setItem('vaultkey_token', response.token)
 
@@ -102,7 +99,7 @@ export default function RegisterPage() {
         token: response.token,
       })
 
-      navigate('/vault');
+      navigate('/vault')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed')
     } finally {
@@ -111,167 +108,117 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center px-4 py-12">
-      <div className="max-w-md w-full">
-        <div className="bg-white rounded-lg shadow-xl p-8">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Create Account
-            </h1>
-            <p className="text-gray-600">
-              Start securing your passwords with VaultKey
+    <div className="bg-paper text-ink min-h-screen flex flex-col antialiased selection:bg-mint selection:text-ink">
+      <nav className="flex justify-between items-center px-gutter w-full max-w-full h-16 bg-paper">
+        <Link to="/" className="font-headline-md text-headline-md font-bold text-primary tracking-tighter hover:opacity-75 transition-opacity">VaultKey</Link>
+      </nav>
+
+      <main className="flex-grow flex flex-col lg:flex-row relative">
+        <div className="hidden lg:flex w-full lg:w-1/2 items-center justify-center bg-surface-container-highest p-margin-safe border-r border-taupe">
+          <div className="max-w-md text-center">
+            <h3 className="font-headline-md text-headline-md font-bold text-ink mb-4 tracking-tighter">Begin your journey to effortless security.</h3>
+            <p className="font-body-lg text-body-lg text-on-surface-variant">
+              Create an account to start generating unguessable keys and securing your digital footprint.
             </p>
           </div>
+        </div>
 
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-sm text-red-800">{error}</p>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Email Address
-              </label>
-              <input
-                type="email"
-                id="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition ${
-                  validationErrors.email
-                    ? 'border-red-300 bg-red-50'
-                    : 'border-gray-300'
-                }`}
-                placeholder="you@example.com"
-                disabled={loading}
-              />
-              {validationErrors.email && (
-                <p className="mt-1 text-sm text-red-600">
-                  {validationErrors.email}
-                </p>
-              )}
+        <div className="w-full flex items-center p-margin-safe lg:p-[120px] bg-paper lg:w-1/2">
+          <div className="w-full max-w-md ml-auto mr-auto lg:ml-0 lg:mr-auto">
+            <div className="mb-12">
+              <h2 className="font-headline-md text-headline-md font-bold text-ink mb-2">Create Account</h2>
             </div>
 
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Master Password
-              </label>
-              <input
-                type="password"
-                id="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={12}
-                className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition ${
-                  validationErrors.password
-                    ? 'border-red-300 bg-red-50'
-                    : 'border-gray-300'
-                }`}
-                placeholder="At least 12 characters"
-                disabled={loading}
-              />
-              {validationErrors.password && (
-                <p className="mt-1 text-sm text-red-600">
-                  {validationErrors.password}
-                </p>
-              )}
-              <p className="mt-1 text-xs text-gray-500">
-                This password encrypts your vault. Choose a strong, unique password.
-              </p>
-            </div>
+            {error && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
+                <p className="text-sm text-red-800">{error}</p>
+              </div>
+            )}
 
-            <div>
-              <label
-                htmlFor="confirmPassword"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Confirm Password
-              </label>
-              <input
-                type="password"
-                id="confirmPassword"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-                className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition ${
-                  validationErrors.confirmPassword
-                    ? 'border-red-300 bg-red-50'
-                    : 'border-gray-300'
-                }`}
-                placeholder="Re-enter your password"
-                disabled={loading}
-              />
-              {validationErrors.confirmPassword && (
-                <p className="mt-1 text-sm text-red-600">
-                  {validationErrors.confirmPassword}
-                </p>
-              )}
-            </div>
+            <form onSubmit={handleSubmit} className="flex flex-col gap-8">
+              <div className="flex flex-col gap-2">
+                <label className="font-label-caps text-label-caps text-ink tracking-widest uppercase font-bold" htmlFor="email">Email Address</label>
+                <input
+                  className="w-full border-none border-b-2 border-taupe rounded-none bg-transparent py-3 px-0 font-body-md text-ink focus:outline-none focus:shadow-none focus:border-mint"
+                  id="email"
+                  placeholder="jane@example.com"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={loading}
+                  required
+                />
+                {validationErrors.email && <p className="text-sm text-red-700">{validationErrors.email}</p>}
+              </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-indigo-600 text-white py-3 px-4 rounded-md font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-            >
-              {loading ? (
-                <>
-                  <svg
-                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
+              <div className="flex flex-col gap-2">
+                <label className="font-label-caps text-label-caps text-ink tracking-widest uppercase flex justify-between font-bold" htmlFor="password">
+                  <span>Master Password</span>
+                </label>
+                <div className="relative">
+                  <input
+                    className="w-full border-none border-b-2 border-taupe rounded-none bg-transparent py-3 pr-14 px-0 font-body-md text-ink focus:outline-none focus:shadow-none focus:border-mint"
+                    id="password"
+                    placeholder="************"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={loading}
+                    minLength={12}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((current) => !current)}
+                    className="absolute right-0 top-1/2 -translate-y-1/2 text-on-surface-variant font-body-md cursor-pointer hover:text-pink transition-colors duration-200"
                   >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  Creating Account...
-                </>
-              ) : (
-                'Create Account'
-              )}
-            </button>
-          </form>
+                    {showPassword ? 'Hide' : 'Show'}
+                  </button>
+                </div>
+                <p className="font-body-md text-body-md text-on-surface-variant text-sm mt-1">Minimum 12 characters, mix of cases and symbols.</p>
+                {validationErrors.password && <p className="text-sm text-red-700">{validationErrors.password}</p>}
+              </div>
 
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
-              Already have an account?{' '}
-              <Link
-                to="/login"
-                className="font-medium text-indigo-600 hover:text-indigo-500"
-              >
-                Sign in
-              </Link>
-            </p>
+              <div className="flex flex-col gap-2">
+                <label className="font-label-caps text-label-caps text-ink tracking-widest uppercase font-bold" htmlFor="confirmPassword">Confirm Password</label>
+                <div className="relative">
+                  <input
+                    className="w-full border-none border-b-2 border-taupe rounded-none bg-transparent py-3 pr-14 px-0 font-body-md text-ink focus:outline-none focus:shadow-none focus:border-mint"
+                    id="confirmPassword"
+                    placeholder="************"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    disabled={loading}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword((current) => !current)}
+                    className="absolute right-0 top-1/2 -translate-y-1/2 text-on-surface-variant font-body-md cursor-pointer hover:text-pink transition-colors duration-200"
+                  >
+                    {showConfirmPassword ? 'Hide' : 'Show'}
+                  </button>
+                </div>
+                {validationErrors.confirmPassword && <p className="text-sm text-red-700">{validationErrors.confirmPassword}</p>}
+              </div>
+
+              <div className="mt-8 flex flex-col gap-6">
+                <button className="relative w-full rounded-full p-[2px] transition-transform duration-300 hover:scale-105 active:scale-100 overflow-hidden group cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed" type="submit" disabled={loading}>
+                  <div className="absolute inset-0 register-button-bg z-0"></div>
+                  <div className="relative z-10 w-full bg-ink text-mint font-body-lg text-body-lg py-4 font-bold rounded-full text-center flex items-center justify-center">
+                    {loading ? 'Creating Account...' : 'Register'}
+                  </div>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
+      </main>
 
-        <div className="mt-6 text-center">
-          <p className="text-xs text-gray-600">
-            🔒 Zero-knowledge encryption • Your data never leaves your device unencrypted
-          </p>
-        </div>
-      </div>
+      <footer className="w-full py-12 border-t border-taupe bg-paper flex flex-col md:flex-row justify-between items-center px-gutter gap-4">
+        <div className="font-headline-md text-headline-md font-bold text-primary">VaultKey</div>
+      </footer>
     </div>
   )
 }
