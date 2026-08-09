@@ -1,7 +1,38 @@
-import redis
 import json
 
-r = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+try:
+    import redis
+except ImportError:  # pragma: no cover - optional dependency fallback
+    redis = None
+
+
+class InMemorySessionStore:
+    def __init__(self):
+        self._store = {}
+
+    def setex(self, key: str, ttl: int, value: str):
+        self._store[key] = value
+
+    def get(self, key: str):
+        return self._store.get(key)
+
+    def delete(self, key: str):
+        self._store.pop(key, None)
+
+
+def _build_session_store():
+    if redis is None:
+        return InMemorySessionStore()
+
+    try:
+        client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+        client.ping()
+        return client
+    except Exception:
+        return InMemorySessionStore()
+
+
+r = _build_session_store()
 SESSION_TTL_SECONDS = 300
 
 def store_session(session_id: str, user_id: str, user_email: str, A: int, B: int, b: int, v: int, salt: bytes):

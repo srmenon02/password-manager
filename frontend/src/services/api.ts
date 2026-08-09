@@ -23,8 +23,8 @@ export async function registerUser(data: RegisterRequest): Promise<RegisterRespo
     })
 
     if (response.status !== 201) {
-      const errorData: ErrorResponse = await response.json()
-      throw new Error(errorData.message || 'Registration failed')
+      const errorData: ErrorResponse & { detail?: { message?: string } } = await response.json()
+      throw new Error(errorData.message || errorData.detail?.message || 'Registration failed')
     }
 
     const result: RegisterResponse = await response.json()
@@ -51,8 +51,8 @@ export async function loginInit(data: LoginInitRequest): Promise<LoginInitRespon
     })
 
     if (!response.ok) {
-      const errorData: ErrorResponse = await response.json()
-      throw new Error(errorData.message || 'Login initialization failed')
+      const errorData: ErrorResponse & { detail?: { message?: string } } = await response.json()
+      throw new Error(errorData.message || errorData.detail?.message || 'Login initialization failed')
     }
 
     const result: LoginInitResponse = await response.json()
@@ -79,8 +79,8 @@ export async function loginVerify(data: LoginVerifyRequest): Promise<LoginVerify
     })
 
     if (!response.ok) {
-      const errorData: ErrorResponse = await response.json()
-      throw new Error(errorData.message || 'Login verification failed')
+      const errorData: ErrorResponse & { detail?: { message?: string } } = await response.json()
+      throw new Error(errorData.message || errorData.detail?.message || 'Login verification failed')
     }
 
     const result: LoginVerifyResponse = await response.json()
@@ -106,8 +106,8 @@ export async function getVault(token: string): Promise<VaultResponse> {
     })
 
     if (!response.ok) {
-      const errorData: ErrorResponse = await response.json()
-      throw new Error(errorData.message || 'Failed to fetch vault')
+      const errorData: ErrorResponse & { detail?: { message?: string } } = await response.json()
+      throw new Error(errorData.message || errorData.detail?.message || 'Failed to fetch vault')
     }
 
     const result: VaultResponse = await response.json()
@@ -135,8 +135,8 @@ export async function updateVault(
     })
 
     if (!response.ok) {
-      const errorData: ErrorResponse = await response.json()
-      throw new Error(errorData.message || 'Failed to update vault')
+      const errorData: ErrorResponse & { detail?: { message?: string } } = await response.json()
+      throw new Error(errorData.message || errorData.detail?.message || 'Failed to update vault')
     }
 
     return response.json()

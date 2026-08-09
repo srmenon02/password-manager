@@ -1,13 +1,59 @@
 """
 JWT authentication utilities and dependencies for protected routes.
 """
-from datetime import datetime, timedelta
+import base64
+import hashlib
+import hmac
+import json
+from datetime import datetime, timedelta, timezone
 from typing import Optional
-from jose import JWTError, jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from uuid import UUID
+
+try:
+    from jose import JWTError, jwt
+except ImportError:  # pragma: no cover - fallback for local/test environments
+    class JWTError(Exception):
+        pass
+
+    class _JwtFallback:
+        @staticmethod
+        def _b64url_encode(data: bytes) -> str:
+            return base64.urlsafe_b64encode(data).rstrip(b"=").decode("ascii")
+
+        @staticmethod
+        def _b64url_decode(data: str) -> bytes:
+            padding = "=" * (-len(data) % 4)
+            return base64.urlsafe_b64decode(data + padding)
+
+        @classmethod
+        def encode(cls, payload: dict, key: str, algorithm: str = "HS256") -> str:
+            header = {"alg": algorithm, "typ": "JWT"}
+            header_segment = cls._b64url_encode(json.dumps(header, separators=(",", ":")).encode("utf-8"))
+            payload_segment = cls._b64url_encode(json.dumps(payload, separators=(",", ":")).encode("utf-8"))
+            signing_input = f"{header_segment}.{payload_segment}".encode("utf-8")
+            signature = hmac.new(key.encode("utf-8"), signing_input, hashlib.sha256).digest()
+            return f"{header_segment}.{payload_segment}.{cls._b64url_encode(signature)}"
+
+        @classmethod
+        def decode(cls, token: str, key: str, algorithms: Optional[list[str]] = None) -> dict:
+            if not token or token.count(".") != 2:
+                raise JWTError("Invalid token")
+            header_segment, payload_segment, signature_segment = token.split(".")
+            signing_input = f"{header_segment}.{payload_segment}".encode("utf-8")
+            expected_signature = cls._b64url_encode(hmac.new(key.encode("utf-8"), signing_input, hashlib.sha256).digest())
+            if not hmac.compare_digest(signature_segment, expected_signature):
+                raise JWTError("Signature mismatch")
+            payload_bytes = cls._b64url_decode(payload_segment)
+            payload = json.loads(payload_bytes.decode("utf-8"))
+            exp = payload.get("exp")
+            if exp is not None and datetime.now(timezone.utc).timestamp() >= float(exp):
+                raise JWTError("Token expired")
+            return payload
+
+    jwt = _JwtFallback()
 
 from app.config import settings
 from app.database import get_db
@@ -34,11 +80,11 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     """
     to_encode = data.copy()
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    
-    to_encode.update({"exp": expire})
+        expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+
+    to_encode.update({"exp": int(expire.timestamp())})
     encoded_jwt = jwt.encode(to_encode, settings.JWT_SECRET, algorithm=ALGORITHM)
     return encoded_jwt
 

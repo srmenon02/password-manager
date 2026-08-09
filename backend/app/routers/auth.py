@@ -5,9 +5,13 @@ from sqlalchemy.exc import IntegrityError
 import base64
 import uuid
 import secrets
-import srp
 import hashlib
 from datetime import timedelta
+
+try:
+    import srp
+except ModuleNotFoundError:  # pragma: no cover - fallback for local testing
+    srp = None
 
 from app.database import get_db
 from app.models import User, Vault
@@ -19,11 +23,20 @@ from app.schemas import (
 )
 from app.auth import create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
 from app.srp_session import delete_session, store_session, get_session
-from srp._pysrp import get_ng
+
+try:
+    from srp._pysrp import get_ng
+except ModuleNotFoundError:  # pragma: no cover - fallback for local testing
+    def get_ng(*_args, **_kwargs):
+        return 0, 0
 
 router = APIRouter()
 
-N, g = get_ng(srp.NG_2048, None, None)
+if srp is None:
+    N = 0
+    g = 0
+else:
+    N, g = get_ng(srp.NG_2048, None, None)
 N_BYTES = 256
 
 
@@ -159,6 +172,17 @@ async def login_init(request: LoginInitRequest, db: Session = Depends(get_db)):
             detail={"error": "user_not_found", "message": "Email not found"}
         )
 
+    if srp is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"error": "srp_unavailable", "message": "SRP support is unavailable in this environment"}
+        )
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"error": "user_not_found", "message": "Email not found"}
+        )
+
     session_id = str(uuid.uuid4())
 
     b = secrets.randbelow(N)
@@ -196,9 +220,18 @@ async def login_init(request: LoginInitRequest, db: Session = Depends(get_db)):
     }
 )
 async def login_verify(request: LoginVerifyRequest, db: Session = Depends(get_db)):
+    if srp is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"error": "srp_unavailable", "message": "SRP support is unavailable in this environment"}
+        )
+
     session = get_session(request.session_id)
     if not session:
-        raise HTTPException(status_code=404, detail="Session expired")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"error": "session_expired", "message": "Session expired or invalid"}
+        )
     
     A = int.from_bytes(base64.b64decode(session["A"]), 'big')
     B = session["B"]
