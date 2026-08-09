@@ -17,6 +17,9 @@ srp==1.0.22
 # Session storage
 redis==8.0.1
 
+# Task scheduling
+apscheduler==3.11.3
+
 # CORS and validation
 pydantic==2.5.3
 pydantic-settings==2.1.0
