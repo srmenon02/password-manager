@@ -1,5 +1,5 @@
 import base64
-from pydantic import BaseModel, EmailStr, ConfigDict, field_validator
+from pydantic import BaseModel, EmailStr, ConfigDict, Field, field_validator
 from typing import Optional, List
 from datetime import datetime
 from uuid import UUID
@@ -259,3 +259,35 @@ class VaultInDB(VaultBase):
     user_id: UUID
     created_at: datetime
     updated_at: datetime
+
+
+class BreachResultInput(BaseModel):
+    entry_id: str
+    password_sha1: str = Field(..., min_length=40, max_length=40)
+    breached: bool
+    last_seen_count: Optional[int] = None
+
+    @field_validator("password_sha1")
+    @classmethod
+    def validate_sha1(cls, v: str) -> str:
+        if not all(c in "0123456789abcdefABCDEF" for c in v):
+            raise ValueError("password_sha1 must be a hex string")
+        return v.upper()
+
+
+class BreachResultsSaveRequest(BaseModel):
+    results: List[BreachResultInput]
+
+
+class BreachResultResponse(BaseModel):
+    entry_id: str
+    breached: bool
+    checked_at: datetime
+    last_seen_count: Optional[int] = None
+
+    class Config:
+        from_attributes = True
+
+
+class BreachResultsListResponse(BaseModel):
+    results: List[BreachResultResponse]

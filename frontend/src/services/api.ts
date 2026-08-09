@@ -120,6 +120,37 @@ export async function getVault(token: string): Promise<VaultResponse> {
   }
 }
 
+async function sha1(input: string): Promise<string> {
+  const data = new TextEncoder().encode(input)
+  const hashBuffer = await crypto.subtle.digest('SHA-1', data)
+  const hashArray = Array.from(new Uint8Array(hashBuffer))
+  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('').toUpperCase()
+}
+
+export async function checkPasswordBreach(password: string): Promise<boolean> {
+  const hash = await sha1(password)
+  const prefix = hash.slice(0, 5)
+  const suffix = hash.slice(5)
+
+  const response = await fetch(`https://api.pwnedpasswords.com/range/${prefix}`)
+
+  if (!response.ok) {
+    throw new Error('Failed to check password breach status')
+  }
+
+  const text = await response.text()
+  const lines = text.split('\n')
+
+  for (const line of lines) {
+    const [lineSuffix] = line.split(':')
+    if (lineSuffix.trim() === suffix) {
+      return true
+    }
+  }
+
+  return false
+}
+
 export async function updateVault(
   token: string,
   data: VaultUpdateRequest

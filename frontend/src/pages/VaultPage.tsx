@@ -2,6 +2,7 @@ import { type FormEvent, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useVault } from '@/context/VaultContext'
 import type { VaultEntryInput } from '@/models/vault'
+import { checkPasswordBreach } from '../services/api'
 
 const UPPER = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 const LOWER = 'abcdefghijklmnopqrstuvwxyz'
@@ -43,6 +44,9 @@ export default function VaultPage() {
   const [error, setError] = useState<string | null>(null)
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [passwordBreached, setPasswordBreached] = useState(false)
+  const [checkingBreach, setCheckingBreach] = useState(false)
+  const [breachedEntryIds, setBreachedEntryIds] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     const token = localStorage.getItem('vaultkey_token')
@@ -50,6 +54,58 @@ export default function VaultPage() {
       navigate('/login')
     }
   }, [navigate])
+
+  useEffect(() => {
+    if (!formState.password) {
+      setPasswordBreached(false)
+      return
+    }
+
+    const timeoutId = setTimeout(async () => {
+      setCheckingBreach(true)
+      try {
+        const breached = await checkPasswordBreach(formState.password)
+        setPasswordBreached(breached)
+      } catch {
+        setPasswordBreached(false)
+      } finally {
+        setCheckingBreach(false)
+      }
+    }, 500)
+
+    return () => clearTimeout(timeoutId)
+  }, [formState.password])
+
+  useEffect(() => {
+    if (!vaultData) {
+      return
+    }
+
+    let cancelled = false
+
+    async function scanEntries() {
+      const results = await Promise.all(
+        vaultData!.entries.map(async (entry) => {
+          try {
+            const breached = await checkPasswordBreach(entry.password)
+            return [entry.id, breached] as const
+          } catch {
+            return [entry.id, false] as const
+          }
+        })
+      )
+
+      if (!cancelled) {
+        setBreachedEntryIds(new Set(results.filter(([, breached]) => breached).map(([id]) => id)))
+      }
+    }
+
+    scanEntries()
+
+    return () => {
+      cancelled = true
+    }
+  }, [vaultData])
 
   const filteredEntries = useMemo(() => {
     if (!vaultData) {
@@ -233,6 +289,10 @@ export default function VaultPage() {
               Generate
             </button>
           </div>
+          {checkingBreach && <p className="md:col-span-2 text-sm text-on-surface-variant">Checking password...</p>}
+          {!checkingBreach && passwordBreached && (
+            <p className="md:col-span-2 text-sm text-red-600">This password has appeared in a known data breach.</p>
+          )}
           <input
             type="text"
             value={formState.notes || ''}
@@ -284,6 +344,9 @@ export default function VaultPage() {
 
                   <div className="flex items-center gap-4 z-10 relative flex-wrap">
                     <span className="bg-surface-dim px-3 py-1 rounded-full font-label-caps text-label-caps text-ink font-bold">Stored</span>
+                    {breachedEntryIds.has(entry.id) && (
+                      <span className="bg-red-100 border border-red-300 px-3 py-1 rounded-full font-label-caps text-label-caps text-red-800 font-bold">Breached</span>
+                    )}
                     <button
                       className="w-10 h-10 border border-ink flex items-center justify-center hover:bg-mint hover:border-mint transition-colors bg-white"
                       onClick={() => handleCopyPassword(entry.password)}

@@ -8,7 +8,7 @@ import {
   type PropsWithChildren,
 } from 'react'
 import { encryptVault } from '@/crypto/vaultEncryption'
-import { updateVault as updateVaultRequest } from '@/services/api'
+import { updateVault as updateVaultRequest, checkPasswordBreach } from '@/services/api'
 import { createVaultEntry, type VaultEntryInput, updateVaultEntry } from '@/models/vault'
 
 interface VaultContextValue {
@@ -26,6 +26,7 @@ interface VaultContextValue {
   editEntry: (id: string, input: VaultEntryInput) => void
   removeEntry: (id: string) => void
   saveVault: () => Promise<void>
+  checkPasswordBreach: (password: string) => Promise<boolean>
 }
 
 const VaultContext = createContext<VaultContextValue | undefined>(undefined)
@@ -121,6 +122,7 @@ export function VaultProvider({ children }: PropsWithChildren) {
       editEntry,
       removeEntry,
       saveVault,
+      checkPasswordBreach,
     }),
     [
       addEntry,
