@@ -1,8 +1,15 @@
-import { type FormEvent, useEffect, useMemo, useState } from 'react'
+import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useVault } from '@/context/VaultContext'
 import type { VaultEntryInput } from '@/models/vault'
-import { checkPasswordBreach } from '../services/api'
+import { checkPasswordBreach, createShare, getJwtSubject, initShare, registerSharingKeys } from '../services/api'
+import {
+  createShareEnvelope,
+  exportSharingPrivateKeyPkcs8,
+  exportSharingPublicKeyBase64,
+  generateUserSharingKeyPair,
+  protectSharingPrivateKey,
+} from '@/crypto/sharingProtocol'
 
 const UPPER = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 const LOWER = 'abcdefghijklmnopqrstuvwxyz'
@@ -31,6 +38,8 @@ export default function VaultPage() {
   const navigate = useNavigate()
   const {
     vaultData,
+    vaultKey,
+    token,
     isUnlocked,
     isSaving,
     clearVaultSession,
@@ -47,6 +56,21 @@ export default function VaultPage() {
   const [passwordBreached, setPasswordBreached] = useState(false)
   const [checkingBreach, setCheckingBreach] = useState(false)
   const [breachedEntryIds, setBreachedEntryIds] = useState<Set<string>>(new Set())
+  const breachCheckControllerRef = useRef<AbortController | null>(null)
+  const [shareTargetId, setShareTargetId] = useState<string | null>(null)
+  const [shareRecipientEmail, setShareRecipientEmail] = useState('')
+  const [shareLoading, setShareLoading] = useState(false)
+  const [shareStatus, setShareStatus] = useState<string | null>(null)
+  const [shareError, setShareError] = useState<string | null>(null)
+  const [sharingSetupLoading, setSharingSetupLoading] = useState(false)
+  const [sharingSetupMessage, setSharingSetupMessage] = useState<string | null>(null)
+  const [sharingSetupError, setSharingSetupError] = useState<string | null>(null)
+
+  const currentUserId = useMemo(() => (token ? getJwtSubject(token) : null), [token])
+  const selectedShareEntry = useMemo(
+    () => vaultData?.entries.find((entry) => entry.id === shareTargetId) ?? null,
+    [shareTargetId, vaultData]
+  )
 
   useEffect(() => {
     const token = localStorage.getItem('vaultkey_token')
@@ -57,23 +81,41 @@ export default function VaultPage() {
 
   useEffect(() => {
     if (!formState.password) {
+      breachCheckControllerRef.current?.abort()
+      breachCheckControllerRef.current = null
       setPasswordBreached(false)
+      setCheckingBreach(false)
       return
     }
 
     const timeoutId = setTimeout(async () => {
+      breachCheckControllerRef.current?.abort()
+      const controller = new AbortController()
+      breachCheckControllerRef.current = controller
+
       setCheckingBreach(true)
       try {
-        const breached = await checkPasswordBreach(formState.password)
-        setPasswordBreached(breached)
-      } catch {
+        const breached = await checkPasswordBreach(formState.password, controller.signal)
+        if (!controller.signal.aborted) {
+          setPasswordBreached(breached)
+        }
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          return
+        }
         setPasswordBreached(false)
       } finally {
-        setCheckingBreach(false)
+        if (!controller.signal.aborted) {
+          setCheckingBreach(false)
+        }
       }
     }, 500)
 
-    return () => clearTimeout(timeoutId)
+    return () => {
+      clearTimeout(timeoutId)
+      breachCheckControllerRef.current?.abort()
+      breachCheckControllerRef.current = null
+    }
   }, [formState.password])
 
   useEffect(() => {
@@ -125,6 +167,11 @@ export default function VaultPage() {
     )
   }, [searchQuery, vaultData])
 
+  const breachedEntries = useMemo(
+    () => filteredEntries.filter((entry) => breachedEntryIds.has(entry.id)),
+    [filteredEntries, breachedEntryIds]
+  )
+
   function handleLogout() {
     localStorage.clear()
     clearVaultSession()
@@ -134,6 +181,101 @@ export default function VaultPage() {
   function resetForm() {
     setFormState(defaultFormState)
     setEditingId(null)
+  }
+
+  function selectShareTarget(entryId: string) {
+    setShareTargetId(entryId)
+    setShareError(null)
+    setShareStatus(null)
+  }
+
+  async function handleSetupSharingKeys() {
+    if (!token || !vaultKey) {
+      setSharingSetupError('Unlock the vault before generating sharing keys')
+      return
+    }
+
+    setSharingSetupError(null)
+    setSharingSetupMessage(null)
+    setSharingSetupLoading(true)
+
+    try {
+      const keyPair = await generateUserSharingKeyPair()
+      const sharingPublicKey = await exportSharingPublicKeyBase64(keyPair.publicKey)
+      const sharingPrivateKeyPkcs8 = await exportSharingPrivateKeyPkcs8(keyPair.privateKey)
+      const protectedPrivateKey = await protectSharingPrivateKey(sharingPrivateKeyPkcs8, vaultKey)
+
+      await registerSharingKeys(token, {
+        sharing_public_key: sharingPublicKey,
+        encrypted_private_key: protectedPrivateKey.encryptedPrivateKey,
+        encrypted_private_key_iv: protectedPrivateKey.encryptedPrivateKeyIv,
+        algorithm: 'ECDH-P256-HKDF-AES256GCM',
+      })
+
+      setSharingSetupMessage('Sharing keys generated and registered')
+    } catch (error) {
+      setSharingSetupError(error instanceof Error ? error.message : 'Failed to set up sharing keys')
+    } finally {
+      setSharingSetupLoading(false)
+    }
+  }
+
+  async function handleShareSelectedEntry() {
+    if (!token || !currentUserId || !selectedShareEntry) {
+      setShareError('Select a credential to share')
+      return
+    }
+
+    if (!shareRecipientEmail.trim()) {
+      setShareError('Recipient email is required')
+      return
+    }
+
+    setShareLoading(true)
+    setShareError(null)
+    setShareStatus(null)
+
+    try {
+      const recipient = await initShare(token, {
+        recipient_email: shareRecipientEmail.trim(),
+      })
+
+      const aad = {
+        from_user_id: currentUserId,
+        to_user_id: recipient.recipient_user_id,
+        item_id: selectedShareEntry.id,
+        version: 1,
+      }
+
+      const envelope = await createShareEnvelope({
+        payloadJson: JSON.stringify(selectedShareEntry),
+        recipientPublicKeyBase64: recipient.recipient_sharing_public_key,
+        aad,
+        version: 1,
+      })
+
+      const createdShare = await createShare(token, {
+        to_user_id: recipient.recipient_user_id,
+        sender_ephemeral_public_key: envelope.senderEphemeralPublicKey,
+        wrapped_cek: envelope.wrappedCek,
+        wrapped_cek_iv: envelope.wrappedCekIv,
+        payload_ciphertext: envelope.payloadCiphertext,
+        payload_iv: envelope.payloadIv,
+        aad: envelope.aad,
+        algorithm: envelope.algorithm,
+        version: envelope.version,
+      })
+
+      setShareStatus(
+        `Shared ${selectedShareEntry.site} with ${shareRecipientEmail.trim()} (share ${createdShare.share_id})`
+      )
+      setShareTargetId(null)
+      setShareRecipientEmail('')
+    } catch (error) {
+      setShareError(error instanceof Error ? error.message : 'Failed to share credential')
+    } finally {
+      setShareLoading(false)
+    }
   }
 
   function validateForm(): boolean {
@@ -258,6 +400,106 @@ export default function VaultPage() {
         {error && <div className="mb-4 p-3 rounded-md border border-red-200 bg-red-50 text-red-800 text-sm">{error}</div>}
         {saveMessage && <div className="mb-4 p-3 rounded-md border border-green-200 bg-green-50 text-green-800 text-sm">{saveMessage}</div>}
 
+        <section className="mb-10 border border-red-200 bg-red-50 p-6 rounded-lg shadow-sm">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <p className="text-xs uppercase tracking-[0.14em] text-red-700 font-bold">Breach dashboard</p>
+              <h2 className="font-headline-md text-headline-md text-ink mt-2">Password exposure overview</h2>
+            </div>
+            <span className="rounded-full bg-red-100 border border-red-300 px-3 py-1 text-sm font-bold text-red-800">
+              {breachedEntries.length} exposed
+            </span>
+          </div>
+
+          {breachedEntries.length > 0 ? (
+            <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-3">
+              {breachedEntries.map((entry) => (
+                <div key={entry.id} className="rounded-md border border-red-200 bg-white px-4 py-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="font-bold text-ink">{entry.site}</p>
+                      <p className="text-sm text-on-surface-variant">{entry.username}</p>
+                    </div>
+                    <span className="bg-red-100 border border-red-300 px-2 py-1 rounded-full text-xs font-bold text-red-800">Breached</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-5 text-sm text-on-surface-variant">No breached credentials detected in this vault.</p>
+          )}
+        </section>
+
+        <section className="mb-10 border border-surface-dim bg-surface-container-lowest p-6 rounded-lg shadow-sm">
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div className="max-w-2xl">
+              <h2 className="font-headline-md text-headline-md mb-2 text-ink">Secure Sharing</h2>
+              <p className="text-sm text-on-surface-variant">
+                Generate a sharing keypair once, then share a credential with a recipient who has also registered sharing keys.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="vault-btn-secondary px-4 py-2 font-body-md whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleSetupSharingKeys}
+              disabled={sharingSetupLoading}
+            >
+              {sharingSetupLoading ? 'Generating...' : 'Generate sharing keys'}
+            </button>
+          </div>
+
+          {sharingSetupError && <div className="mt-4 p-3 rounded-md border border-red-200 bg-red-50 text-red-800 text-sm">{sharingSetupError}</div>}
+          {sharingSetupMessage && <div className="mt-4 p-3 rounded-md border border-green-200 bg-green-50 text-green-800 text-sm">{sharingSetupMessage}</div>}
+
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block mb-2 text-sm font-bold text-ink" htmlFor="share-recipient-email">Recipient email</label>
+              <input
+                id="share-recipient-email"
+                type="email"
+                value={shareRecipientEmail}
+                onChange={(event) => setShareRecipientEmail(event.target.value)}
+                className="input-line w-full px-3 py-2"
+                placeholder="recipient@example.com"
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <span className="text-sm font-bold text-ink">Selected credential</span>
+              <div className="border border-surface-dim rounded-md bg-white px-3 py-2 text-sm text-on-surface-variant min-h-[44px] flex items-center">
+                {selectedShareEntry ? `${selectedShareEntry.site} / ${selectedShareEntry.username}` : 'Pick an entry below'}
+              </div>
+            </div>
+
+            <div className="md:col-span-2 flex flex-wrap gap-3 items-center">
+              <button
+                type="button"
+                className="vault-btn-primary px-4 py-2 font-body-md font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={handleShareSelectedEntry}
+                disabled={shareLoading || !selectedShareEntry}
+              >
+                {shareLoading ? 'Sharing...' : 'Share selected credential'}
+              </button>
+              {shareTargetId && (
+                <button
+                  type="button"
+                  className="vault-btn-secondary px-4 py-2 font-body-md"
+                  onClick={() => setShareTargetId(null)}
+                >
+                  Clear selection
+                </button>
+              )}
+            </div>
+          </div>
+
+          {shareError && <div className="mt-4 p-3 rounded-md border border-red-200 bg-red-50 text-red-800 text-sm">{shareError}</div>}
+          {shareStatus && <div className="mt-4 p-3 rounded-md border border-green-200 bg-green-50 text-green-800 text-sm">{shareStatus}</div>}
+
+          <p className="mt-4 text-xs text-on-surface-variant">
+            Shared items are encrypted in the browser before they are sent to the server. The recipient must have sharing keys registered first.
+          </p>
+        </section>
+
         <form id="vault-entry-form" onSubmit={handleSubmitEntry} className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10 bg-taupe border-2 border-ink p-6">
           <input
             type="text"
@@ -356,6 +598,9 @@ export default function VaultPage() {
                     </button>
                     <button className="vault-btn-secondary px-3 py-1" onClick={() => handleEditStart(entry.id)}>
                       Edit
+                    </button>
+                    <button className="vault-btn-secondary px-3 py-1" onClick={() => selectShareTarget(entry.id)}>
+                      Share
                     </button>
                     <button className="vault-btn-secondary px-3 py-1" onClick={() => removeEntry(entry.id)}>
                       Delete

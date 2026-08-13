@@ -3,15 +3,19 @@ from sqlalchemy.orm import Session
 import base64
 
 from app.database import get_db
-from app.models import User, Vault
+from app.models import BreachResult, User, Vault
 from app.schemas import (
     VaultResponse,
     VaultUpdateRequest,
     VaultUpdateResponse,
     ChangePasswordRequest,
-    ErrorResponse
+    ErrorResponse,
+    BreachResultsListResponse,
+    BreachResultsSaveRequest,
+    BreachResultResponse,
 )
 from app.auth import get_current_user
+from datetime import datetime, timezone
 
 router = APIRouter()
 
@@ -95,6 +99,80 @@ async def update_vault(
         )
     
     return VaultUpdateResponse(updated_at=vault.updated_at)
+
+
+@router.post(
+    "/breaches",
+    response_model=BreachResultsListResponse,
+    responses={
+        401: {"model": ErrorResponse, "description": "Missing or invalid token"},
+        400: {"model": ErrorResponse, "description": "Invalid request"}
+    }
+)
+async def save_breach_results(
+    request: BreachResultsSaveRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    results: list[BreachResultResponse] = []
+
+    for result in request.results:
+        normalized_sha1 = result.password_sha1.upper()
+        row = db.query(BreachResult).filter(
+            BreachResult.user_id == current_user.id,
+            BreachResult.entry_id == result.entry_id,
+        ).first()
+
+        if row is None:
+            row = BreachResult(
+                user_id=current_user.id,
+                entry_id=result.entry_id,
+                password_sha1=normalized_sha1,
+            )
+            db.add(row)
+
+        row.password_sha1 = normalized_sha1
+        row.breached = bool(result.breached)
+        row.last_seen_count = result.last_seen_count
+        row.checked_at = datetime.now(timezone.utc)
+        row.source = "hibp"
+        db.flush()
+
+        results.append(
+            BreachResultResponse(
+                entry_id=row.entry_id,
+                breached=row.breached,
+                checked_at=row.checked_at,
+                last_seen_count=row.last_seen_count,
+            )
+        )
+
+    db.commit()
+    return BreachResultsListResponse(results=results)
+
+
+@router.get(
+    "/breaches",
+    response_model=BreachResultsListResponse,
+    responses={
+        401: {"model": ErrorResponse, "description": "Missing or invalid token"},
+    }
+)
+async def list_breach_results(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    rows = db.query(BreachResult).filter(BreachResult.user_id == current_user.id).all()
+    results = [
+        BreachResultResponse(
+            entry_id=row.entry_id,
+            breached=row.breached,
+            checked_at=row.checked_at,
+            last_seen_count=row.last_seen_count,
+        )
+        for row in rows
+    ]
+    return BreachResultsListResponse(results=results)
 
 
 @router.post(

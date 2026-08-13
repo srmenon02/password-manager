@@ -7,10 +7,39 @@ import type {
   LoginVerifyResponse,
   VaultResponse,
   VaultUpdateRequest,
-  ErrorResponse 
+  SharingKeyRegistrationRequest,
+  ShareInitRequest,
+  ShareInitResponse,
+  ShareCreateRequest,
+  ShareCreateResponse,
+  SharedInboxItem,
+  ErrorResponse,
+  BreachResultInput,
+  BreachResultResponse,
+  BreachResultsListResponse,
 } from '@shared/types'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001'
+
+function decodeBase64Url(value: string): string {
+  const normalized = value.replace(/-/g, '+').replace(/_/g, '/')
+  const padding = '='.repeat((4 - (normalized.length % 4)) % 4)
+  return atob(normalized + padding)
+}
+
+export function getJwtSubject(token: string): string | null {
+  try {
+    const parts = token.split('.')
+    if (parts.length < 2) {
+      return null
+    }
+
+    const payload = JSON.parse(decodeBase64Url(parts[1])) as { sub?: unknown }
+    return typeof payload.sub === 'string' ? payload.sub : null
+  } catch {
+    return null
+  }
+}
 
 export async function registerUser(data: RegisterRequest): Promise<RegisterResponse> {
   try {
@@ -127,12 +156,20 @@ async function sha1(input: string): Promise<string> {
   return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('').toUpperCase()
 }
 
-export async function checkPasswordBreach(password: string): Promise<boolean> {
+export async function checkPasswordBreach(password: string, signal?: AbortSignal): Promise<boolean> {
+  if (signal?.aborted) {
+    throw new DOMException('The operation was aborted.', 'AbortError')
+  }
+
   const hash = await sha1(password)
   const prefix = hash.slice(0, 5)
   const suffix = hash.slice(5)
 
-  const response = await fetch(`https://api.pwnedpasswords.com/range/${prefix}`)
+  const response = await fetch(`https://api.pwnedpasswords.com/range/${prefix}`, { signal })
+
+  if (signal?.aborted) {
+    throw new DOMException('The operation was aborted.', 'AbortError')
+  }
 
   if (!response.ok) {
     throw new Error('Failed to check password breach status')
@@ -176,5 +213,138 @@ export async function updateVault(
       throw error
     }
     throw new Error('An unexpected error occurred while updating vault')
+  }
+}
+
+export async function saveBreachResults(
+  token: string,
+  results: BreachResultInput[]
+): Promise<BreachResultResponse[]> {
+  const response = await fetch(`${API_URL}/api/vault/breaches`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ results }),
+  })
+
+  if (!response.ok) {
+    const errorData: ErrorResponse & { detail?: { message?: string } } = await response.json()
+    throw new Error(errorData.message || errorData.detail?.message || 'Failed to save breach results')
+  }
+
+  const result = await response.json() as BreachResultsListResponse
+  return result.results
+}
+
+export async function listBreachResults(
+  token: string
+): Promise<BreachResultResponse[]> {
+  const response = await fetch(`${API_URL}/api/vault/breaches`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+
+  if (!response.ok) {
+    const errorData: ErrorResponse & { detail?: { message?: string } } = await response.json()
+    throw new Error(errorData.message || errorData.detail?.message || 'Failed to load breach results')
+  }
+
+  const result = await response.json() as BreachResultsListResponse
+  return result.results
+}
+
+export async function registerSharingKeys(
+  token: string,
+  data: SharingKeyRegistrationRequest
+): Promise<void> {
+  const response = await fetch(`${API_URL}/api/share/keys`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  })
+
+  if (!response.ok && response.status !== 204) {
+    const errorData: ErrorResponse & { detail?: { message?: string } } = await response.json()
+    throw new Error(errorData.message || errorData.detail?.message || 'Failed to register sharing keys')
+  }
+}
+
+export async function initShare(
+  token: string,
+  data: ShareInitRequest
+): Promise<ShareInitResponse> {
+  const response = await fetch(`${API_URL}/api/share/init`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  })
+
+  if (!response.ok) {
+    const errorData: ErrorResponse & { detail?: { message?: string } } = await response.json()
+    throw new Error(errorData.message || errorData.detail?.message || 'Failed to initialize sharing')
+  }
+
+  return response.json()
+}
+
+export async function createShare(
+  token: string,
+  data: ShareCreateRequest
+): Promise<ShareCreateResponse> {
+  const response = await fetch(`${API_URL}/api/share`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  })
+
+  if (!response.ok) {
+    const errorData: ErrorResponse & { detail?: { message?: string } } = await response.json()
+    throw new Error(errorData.message || errorData.detail?.message || 'Failed to create share')
+  }
+
+  return response.json()
+}
+
+export async function getSharedWithMe(token: string): Promise<SharedInboxItem[]> {
+  const response = await fetch(`${API_URL}/api/share/shared-with-me`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+
+  if (!response.ok) {
+    const errorData: ErrorResponse & { detail?: { message?: string } } = await response.json()
+    throw new Error(errorData.message || errorData.detail?.message || 'Failed to load shared items')
+  }
+
+  const result = await response.json() as { items: SharedInboxItem[] }
+  return result.items
+}
+
+export async function revokeShare(token: string, shareId: string): Promise<void> {
+  const response = await fetch(`${API_URL}/api/share/${shareId}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+
+  if (!response.ok && response.status !== 204) {
+    const errorData: ErrorResponse & { detail?: { message?: string } } = await response.json()
+    throw new Error(errorData.message || errorData.detail?.message || 'Failed to revoke share')
   }
 }

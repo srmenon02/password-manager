@@ -40,6 +40,10 @@ class User(Base):
     salt = Column(LargeBinary, nullable=False)
     auth_verifier = Column(Text, nullable=False)
     public_key = Column(Text, nullable=True)
+    sharing_public_key = Column(Text, nullable=True)
+    sharing_private_key_encrypted = Column(LargeBinary, nullable=True)
+    sharing_private_key_iv = Column(LargeBinary, nullable=True)
+    sharing_key_algorithm = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
     updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
@@ -71,6 +75,14 @@ class SharedItem(Base):
     from_user_id = Column(GUID(), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     to_user_id = Column(GUID(), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     encrypted_item = Column(LargeBinary, nullable=False)
+    sender_ephemeral_public_key = Column(Text, nullable=True)
+    wrapped_cek = Column(LargeBinary, nullable=True)
+    wrapped_cek_iv = Column(LargeBinary, nullable=True)
+    payload_iv = Column(LargeBinary, nullable=True)
+    aad = Column(Text, nullable=True)
+    algorithm = Column(String, nullable=True)
+    version = Column(Integer, nullable=False, default=1)
+    revoked_at = Column(DateTime(timezone=True), nullable=True)
     shared_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
 
     from_user = relationship("User", foreign_keys=[from_user_id], back_populates="shared_items_sent")
@@ -94,3 +106,13 @@ class BreachResult(Base):
     __table_args__ = (
         UniqueConstraint("user_id", "entry_id", name="uq_breach_results_user_entry"),
     )
+
+class ShareRevocationAudit(Base):
+    __tablename__ = "share_revocation_audit"
+
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    share_id = Column(GUID(), ForeignKey("shared_items.id"), nullable=False)
+    revoked_by_user_id = Column(GUID(), ForeignKey("users.id"), nullable=False)
+    recipient_user_id = Column(GUID(), ForeignKey("users.id"), nullable=False)
+    revoked_at = Column(DateTime(timezone=True), nullable=False)
+    notified_at = Column(DateTime(timezone=True), nullable=True)

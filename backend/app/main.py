@@ -2,24 +2,32 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 
 from fastapi import FastAPI, HTTPException
+from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
+
+try:
+    from apscheduler.schedulers.asyncio import AsyncIOScheduler
+except ModuleNotFoundError:  # pragma: no cover - optional in lightweight dev environments
+    AsyncIOScheduler = None
 
 from app.config import settings
 from app.database import engine, Base
 from app.services.breach_checker import check_and_update_breaches
 
-from app.routers import auth, vault
+from app.routers import auth, share, vault
 
 Base.metadata.create_all(bind=engine)
-
-scheduler = AsyncIOScheduler()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    if AsyncIOScheduler is None:
+        yield
+        return
+
+    scheduler = AsyncIOScheduler()
     scheduler.add_job(
         check_and_update_breaches,
         "interval",
@@ -28,8 +36,11 @@ async def lifespan(app: FastAPI):
         next_run_time=datetime.now()
     )
     scheduler.start()
-    yield
-    scheduler.shutdown()
+    try:
+        yield
+    finally:
+        if scheduler.running:
+            scheduler.shutdown(wait=False)
 
 
 app = FastAPI(
@@ -47,7 +58,7 @@ async def request_validation_exception_handler(_request, exc: RequestValidationE
         content={
             "status": "error",
             "message": "Invalid request payload",
-            "details": exc.errors(),
+            "details": jsonable_encoder(exc.errors()),
         },
     )
 
@@ -85,6 +96,7 @@ async def health_check():
 
 app.include_router(auth.router, prefix="/api", tags=["authentication"])
 app.include_router(vault.router, prefix="/api/vault", tags=["vault"])
+app.include_router(share.router, prefix="/api/share", tags=["sharing"])
 
 
 if __name__ == "__main__":
