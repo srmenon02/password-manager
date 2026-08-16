@@ -20,6 +20,7 @@ from app.schemas import (
     ShareInitRequest,
     ShareInitResponse,
     SharingKeyRegistrationRequest,
+    SharingKeyResponse,
 )
 
 router = APIRouter()
@@ -65,6 +66,37 @@ async def register_sharing_keys(
     current_user.sharing_private_key_iv = sharing_private_key_iv
     current_user.sharing_key_algorithm = request.algorithm
     db.commit()
+
+
+@router.get(
+    "/keys",
+    response_model=SharingKeyResponse,
+    responses={
+        401: {"model": ErrorResponse, "description": "Missing or invalid token"},
+        400: {"model": ErrorResponse, "description": "Recipient has no sharing key"},
+    },
+)
+async def get_sharing_keys(
+    current_user: User = Depends(get_current_user),
+):
+    if not current_user.sharing_public_key or not current_user.sharing_key_algorithm:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"error": "recipient_missing_key", "message": "You have not configured sharing keys"},
+        )
+
+    if not current_user.sharing_private_key_encrypted or not current_user.sharing_private_key_iv:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"error": "recipient_missing_private_key", "message": "Your encrypted sharing private key is missing"},
+        )
+
+    return SharingKeyResponse(
+        sharing_public_key=current_user.sharing_public_key,
+        encrypted_private_key=base64.b64encode(current_user.sharing_private_key_encrypted).decode("utf-8"),
+        encrypted_private_key_iv=base64.b64encode(current_user.sharing_private_key_iv).decode("utf-8"),
+        algorithm=current_user.sharing_key_algorithm,
+    )
 
 
 @router.post(
@@ -132,11 +164,18 @@ async def create_share(
             detail={"error": "recipient_not_found", "message": "Recipient user does not exist"},
         )
 
+    if request.permission not in ALLOWED_SHARE_PERMISSIONS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"error": "invalid_permission", "message": "permission must be read_only or read_write"},
+        )
+
     validate_and_parse_aad(
         request.aad,
         current_user_id=str(current_user.id),
         recipient_id=str(recipient.id),
         expected_version=request.version,
+        expected_permission=request.permission,
     )
 
     try:
@@ -162,6 +201,7 @@ async def create_share(
         aad=request.aad,
         algorithm=request.algorithm,
         version=request.version,
+        permission=request.permission,
     )
 
     db.add(share)
@@ -171,9 +211,10 @@ async def create_share(
     return ShareCreateResponse(share_id=str(share.id), shared_at=share.shared_at)
 
 
-REQUIRED_AAD_FIELDS = {"from_user_id", "to_user_id", "item_id", "version"}
+REQUIRED_AAD_FIELDS = {"from_user_id", "to_user_id", "item_id", "version", "permission"}
+ALLOWED_SHARE_PERMISSIONS = {"read_only", "read_write"}
 
-def validate_and_parse_aad(aad_str: str, current_user_id: str, recipient_id: str, expected_version: int) -> dict:
+def validate_and_parse_aad(aad_str: str, current_user_id: str, recipient_id: str, expected_version: int, expected_permission: str | None = None) -> dict:
     try:
         aad = json.loads(aad_str)
     except (json.JSONDecodeError, TypeError):
@@ -204,6 +245,19 @@ def validate_and_parse_aad(aad_str: str, current_user_id: str, recipient_id: str
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"error": "aad_version_mismatch", "message": "AAD version does not match request version"},
+        )
+
+    permission = aad.get("permission")
+    if permission not in ALLOWED_SHARE_PERMISSIONS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"error": "invalid_permission", "message": "AAD permission must be read_only or read_write"},
+        )
+
+    if expected_permission is not None and permission != expected_permission:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"error": "permission_mismatch", "message": "AAD permission does not match request permission"},
         )
 
     return aad
@@ -244,6 +298,7 @@ async def list_shared_with_me(
                 aad=row.aad,
                 algorithm=row.algorithm,
                 version=row.version,
+                permission=row.permission,
                 shared_at=row.shared_at,
             )
         )
@@ -269,17 +324,16 @@ async def revoke_share(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    row = (
-        db.query(SharedItem)
-        .filter(SharedItem.id == share_id, SharedItem.from_user_id == current_user.id)
-        .first()
-    )
+    row = db.query(SharedItem).filter(SharedItem.id == share_id).first()
 
-    if not row:
+    if not row or (row.from_user_id != current_user.id and row.to_user_id != current_user.id):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"error": "share_not_found", "message": "Share record not found"},
         )
+
+    if row.revoked_at is not None:
+        return
 
     revoked_at = datetime.now(timezone.utc)
     row.revoked_at = revoked_at

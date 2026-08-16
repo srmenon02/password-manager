@@ -82,6 +82,7 @@ class SharedItem(Base):
     aad = Column(Text, nullable=True)
     algorithm = Column(String, nullable=True)
     version = Column(Integer, nullable=False, default=1)
+    permission = Column(String, nullable=False, default="read_write")
     revoked_at = Column(DateTime(timezone=True), nullable=True)
     shared_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
 

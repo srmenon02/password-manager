@@ -73,6 +73,7 @@ export interface VaultUpdateRequest {
 
 // Secure sharing protocol (Step 30)
 export type SharingAlgorithm = 'ECDH-P256-HKDF-AES256GCM'
+export type SharePermission = 'read_only' | 'read_write'
 
 export interface SharingKeyRegistrationRequest {
   sharing_public_key: string // SPKI base64
@@ -102,6 +103,7 @@ export interface ShareCreateRequest {
   aad: string // JSON string used as AES-GCM AAD
   algorithm: SharingAlgorithm
   version: number
+  permission: SharePermission
 }
 
 export interface ShareCreateResponse {
@@ -112,6 +114,7 @@ export interface ShareCreateResponse {
 export interface SharedInboxItem {
   share_id: string
   from_user_id: string
+  from_user_email?: string
   to_user_id: string
   sender_ephemeral_public_key: string
   wrapped_cek: string
@@ -121,6 +124,8 @@ export interface SharedInboxItem {
   aad: string
   algorithm: SharingAlgorithm
   version: number
+  permission: SharePermission
+  item_label?: string
   shared_at: string
 }
 

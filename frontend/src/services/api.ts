@@ -276,6 +276,27 @@ export async function registerSharingKeys(
   }
 }
 
+export async function getSharingKeys(token: string): Promise<{
+  sharing_public_key: string
+  encrypted_private_key: string
+  encrypted_private_key_iv: string
+  algorithm: string
+}> {
+  const response = await fetch(`${API_URL}/api/share/keys`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+
+  if (!response.ok) {
+    const errorData: ErrorResponse & { detail?: { message?: string } } = await response.json()
+    throw new Error(errorData.message || errorData.detail?.message || 'Failed to load sharing keys')
+  }
+
+  return response.json()
+}
+
 export async function initShare(
   token: string,
   data: ShareInitRequest
@@ -347,4 +368,8 @@ export async function revokeShare(token: string, shareId: string): Promise<void>
     const errorData: ErrorResponse & { detail?: { message?: string } } = await response.json()
     throw new Error(errorData.message || errorData.detail?.message || 'Failed to revoke share')
   }
+}
+
+export async function deleteSharedItem(token: string, shareId: string): Promise<void> {
+  await revokeShare(token, shareId)
 }

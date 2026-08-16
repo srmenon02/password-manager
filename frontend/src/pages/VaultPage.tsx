@@ -2,13 +2,17 @@ import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useVault } from '@/context/VaultContext'
 import type { VaultEntryInput } from '@/models/vault'
-import { checkPasswordBreach, createShare, getJwtSubject, initShare, registerSharingKeys } from '../services/api'
+import type { SharedInboxItem } from '@shared/types'
+import { checkPasswordBreach, createShare, deleteSharedItem, getJwtSubject, getSharedWithMe, getSharingKeys, initShare, registerSharingKeys } from '../services/api'
 import {
   createShareEnvelope,
+  decryptShareEnvelope,
   exportSharingPrivateKeyPkcs8,
   exportSharingPublicKeyBase64,
   generateUserSharingKeyPair,
+  parseCanonicalAad,
   protectSharingPrivateKey,
+  unprotectSharingPrivateKey,
 } from '@/crypto/sharingProtocol'
 
 const UPPER = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
@@ -59,12 +63,30 @@ export default function VaultPage() {
   const breachCheckControllerRef = useRef<AbortController | null>(null)
   const [shareTargetId, setShareTargetId] = useState<string | null>(null)
   const [shareRecipientEmail, setShareRecipientEmail] = useState('')
+  const [sharePermission, setSharePermission] = useState<'read_only' | 'read_write'>('read_write')
   const [shareLoading, setShareLoading] = useState(false)
   const [shareStatus, setShareStatus] = useState<string | null>(null)
   const [shareError, setShareError] = useState<string | null>(null)
   const [sharingSetupLoading, setSharingSetupLoading] = useState(false)
   const [sharingSetupMessage, setSharingSetupMessage] = useState<string | null>(null)
   const [sharingSetupError, setSharingSetupError] = useState<string | null>(null)
+  const [sharedInboxItems, setSharedInboxItems] = useState<SharedInboxItem[]>([])
+  const [sharedInboxLoading, setSharedInboxLoading] = useState(false)
+  const [sharedInboxError, setSharedInboxError] = useState<string | null>(null)
+  const [sharedKeyMaterial, setSharedKeyMaterial] = useState<{
+    sharing_public_key: string
+    encrypted_private_key: string
+    encrypted_private_key_iv: string
+    algorithm: string
+  } | null>(null)
+  const [openedShare, setOpenedShare] = useState<{
+    shareId: string
+    entry: { site: string; username: string; password: string; notes?: string }
+  } | null>(null)
+  const [openingShareId, setOpeningShareId] = useState<string | null>(null)
+  const [openShareError, setOpenShareError] = useState<string | null>(null)
+  const [deletingShareId, setDeletingShareId] = useState<string | null>(null)
+  const [deleteShareError, setDeleteShareError] = useState<string | null>(null)
 
   const currentUserId = useMemo(() => (token ? getJwtSubject(token) : null), [token])
   const selectedShareEntry = useMemo(
@@ -78,6 +100,49 @@ export default function VaultPage() {
       navigate('/login')
     }
   }, [navigate])
+
+  useEffect(() => {
+    if (!token || !isUnlocked) {
+      setSharedInboxItems([])
+      setSharedKeyMaterial(null)
+      return
+    }
+
+    const accessToken = token
+    let cancelled = false
+
+    async function loadSharedInbox() {
+      try {
+        setSharedInboxLoading(true)
+        setSharedInboxError(null)
+        const [items, keys] = await Promise.all([
+          getSharedWithMe(accessToken),
+          getSharingKeys(accessToken),
+        ])
+        if (!cancelled) {
+          setSharedInboxItems(items)
+          setSharedKeyMaterial(keys)
+        }
+      } catch (error) {
+        if (!cancelled) {
+          const message = error instanceof Error ? error.message : 'Failed to load shared items'
+          setSharedInboxError(message)
+          setSharedInboxItems([])
+          setSharedKeyMaterial(null)
+        }
+      } finally {
+        if (!cancelled) {
+          setSharedInboxLoading(false)
+        }
+      }
+    }
+
+    loadSharedInbox()
+
+    return () => {
+      cancelled = true
+    }
+  }, [isUnlocked, token])
 
   useEffect(() => {
     if (!formState.password) {
@@ -220,6 +285,61 @@ export default function VaultPage() {
     }
   }
 
+  async function handleOpenSharedItem(item: SharedInboxItem) {
+    if (!token || !vaultKey || !currentUserId || !sharedKeyMaterial) {
+      setOpenShareError('Generate and unlock sharing keys before opening shared entries')
+      return
+    }
+
+    setOpeningShareId(item.share_id)
+    setOpenShareError(null)
+
+    try {
+      const recipientPrivateKey = await unprotectSharingPrivateKey(
+        sharedKeyMaterial.encrypted_private_key,
+        sharedKeyMaterial.encrypted_private_key_iv,
+        vaultKey,
+      )
+
+      const decryptedPayload = await decryptShareEnvelope({
+        senderEphemeralPublicKeyBase64: item.sender_ephemeral_public_key,
+        wrappedCekBase64: item.wrapped_cek,
+        wrappedCekIvBase64: item.wrapped_cek_iv,
+        payloadCiphertextBase64: item.payload_ciphertext,
+        payloadIvBase64: item.payload_iv,
+        aad: item.aad,
+        recipientPrivateKey,
+        expectedRecipientUserId: currentUserId,
+      })
+
+      const entry = JSON.parse(decryptedPayload) as {
+        site?: string
+        username?: string
+        password?: string
+        notes?: string
+      }
+
+      if (!entry.site || !entry.username || !entry.password) {
+        throw new Error('Shared credential payload is incomplete')
+      }
+
+      setOpenedShare({
+        shareId: item.share_id,
+        entry: {
+          site: entry.site,
+          username: entry.username,
+          password: entry.password,
+          notes: entry.notes,
+        },
+      })
+    } catch (error) {
+      setOpenShareError(error instanceof Error ? error.message : 'Failed to open shared credential')
+      setOpenedShare(null)
+    } finally {
+      setOpeningShareId(null)
+    }
+  }
+
   async function handleShareSelectedEntry() {
     if (!token || !currentUserId || !selectedShareEntry) {
       setShareError('Select a credential to share')
@@ -244,7 +364,9 @@ export default function VaultPage() {
         from_user_id: currentUserId,
         to_user_id: recipient.recipient_user_id,
         item_id: selectedShareEntry.id,
+        item_label: `${selectedShareEntry.site} / ${selectedShareEntry.username}`,
         version: 1,
+        permission: sharePermission,
       }
 
       const envelope = await createShareEnvelope({
@@ -264,6 +386,7 @@ export default function VaultPage() {
         aad: envelope.aad,
         algorithm: envelope.algorithm,
         version: envelope.version,
+        permission: sharePermission,
       })
 
       setShareStatus(
@@ -275,6 +398,29 @@ export default function VaultPage() {
       setShareError(error instanceof Error ? error.message : 'Failed to share credential')
     } finally {
       setShareLoading(false)
+    }
+  }
+
+  async function handleDeleteSharedItem(shareId: string) {
+    if (!token) {
+      setDeleteShareError('Sign in to delete shared items')
+      return
+    }
+
+    setDeleteShareError(null)
+    setOpenShareError(null)
+    setDeletingShareId(shareId)
+
+    try {
+      await deleteSharedItem(token, shareId)
+      setSharedInboxItems((prev) => prev.filter((item) => item.share_id !== shareId))
+      if (openedShare?.shareId === shareId) {
+        setOpenedShare(null)
+      }
+    } catch (error) {
+      setDeleteShareError(error instanceof Error ? error.message : 'Failed to delete shared item')
+    } finally {
+      setDeletingShareId(null)
     }
   }
 
@@ -448,6 +594,86 @@ export default function VaultPage() {
             </button>
           </div>
 
+          <div className="mt-6 border-t border-surface-dim pt-6">
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <h3 className="font-headline-sm text-headline-sm text-ink">Shared with me</h3>
+              <span className="text-xs uppercase tracking-[0.14em] text-on-surface-variant font-bold">{sharedInboxItems.length} item{sharedInboxItems.length === 1 ? '' : 's'}</span>
+            </div>
+
+            {sharedInboxLoading && <p className="text-sm text-on-surface-variant">Loading shared items...</p>}
+            {sharedInboxError && <div className="p-3 rounded-md border border-red-200 bg-red-50 text-red-800 text-sm">{sharedInboxError}</div>}
+
+            {!sharedInboxLoading && sharedInboxItems.length === 0 && (
+              <p className="text-sm text-on-surface-variant">No shared credentials yet.</p>
+            )}
+
+            {!sharedInboxLoading && sharedInboxItems.length > 0 && (
+              <div className="space-y-3">
+                {sharedInboxItems.map((item) => {
+                  let aadMeta: { item_id?: string; permission?: string; from_user_id?: string; item_label?: string } | null = null
+                  try {
+                    aadMeta = parseCanonicalAad(item.aad)
+                  } catch {
+                    aadMeta = null
+                  }
+
+                  const isOpened = openedShare?.shareId === item.share_id
+
+                  return (
+                    <div key={item.share_id} className="rounded-md border border-surface-dim bg-white p-4">
+                      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                        <div>
+                          <p className="font-bold text-ink">From: {item.from_user_email ?? aadMeta?.from_user_id ?? 'Unknown sender'}</p>
+                          <p className="text-sm text-on-surface-variant">Item: {item.item_label ?? aadMeta?.item_label ?? 'Shared credential'}</p>
+                        </div>
+                        <span className="rounded-full bg-surface-dim px-2 py-1 text-xs font-bold text-ink">
+                          {item.permission === 'read_only' ? 'Read only' : 'Read and write'}
+                        </span>
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-4 text-xs text-on-surface-variant">
+                        <span>Shared: {new Date(item.shared_at).toLocaleString()}</span>
+                        <span>Version: {item.version}</span>
+                      </div>
+
+                      <div className="mt-3 flex items-center gap-3">
+                        <button
+                          type="button"
+                          className="vault-btn-secondary px-3 py-1 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                          onClick={() => handleOpenSharedItem(item)}
+                          disabled={openingShareId === item.share_id || !sharedKeyMaterial || !vaultKey}
+                        >
+                          {openingShareId === item.share_id ? 'Opening...' : 'Open'}
+                        </button>
+                        <button
+                          type="button"
+                          className="vault-btn-secondary px-3 py-1 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                          onClick={() => handleDeleteSharedItem(item.share_id)}
+                          disabled={deletingShareId === item.share_id}
+                        >
+                          {deletingShareId === item.share_id ? 'Deleting...' : 'Delete'}
+                        </button>
+                      </div>
+
+                      {isOpened && openedShare && (
+                        <div className="mt-4 rounded-md border border-mint bg-mint/5 p-3 space-y-2">
+                          <p className="font-bold text-ink">{openedShare.entry.site}</p>
+                          <p className="text-sm text-on-surface-variant">Username: {openedShare.entry.username}</p>
+                          <p className="text-sm text-on-surface-variant break-all">Password: {openedShare.entry.password}</p>
+                          {openedShare.entry.notes && (
+                            <p className="text-sm text-on-surface-variant">Notes: {openedShare.entry.notes}</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            {openShareError && <div className="mt-4 p-3 rounded-md border border-red-200 bg-red-50 text-red-800 text-sm">{openShareError}</div>}
+            {deleteShareError && <div className="mt-4 p-3 rounded-md border border-red-200 bg-red-50 text-red-800 text-sm">{deleteShareError}</div>}
+          </div>
+
           {sharingSetupError && <div className="mt-4 p-3 rounded-md border border-red-200 bg-red-50 text-red-800 text-sm">{sharingSetupError}</div>}
           {sharingSetupMessage && <div className="mt-4 p-3 rounded-md border border-green-200 bg-green-50 text-green-800 text-sm">{sharingSetupMessage}</div>}
 
@@ -462,6 +688,19 @@ export default function VaultPage() {
                 className="input-line w-full px-3 py-2"
                 placeholder="recipient@example.com"
               />
+            </div>
+
+            <div>
+              <label className="block mb-2 text-sm font-bold text-ink" htmlFor="share-permission">Share permission</label>
+              <select
+                id="share-permission"
+                value={sharePermission}
+                onChange={(event) => setSharePermission(event.target.value as 'read_only' | 'read_write')}
+                className="input-line w-full px-3 py-2"
+              >
+                <option value="read_write">Read and write</option>
+                <option value="read_only">Read only</option>
+              </select>
             </div>
 
             <div className="flex flex-col gap-2">

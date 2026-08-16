@@ -18,26 +18,49 @@ export interface ShareAad {
   from_user_id: string
   to_user_id: string
   item_id: string
+  item_label?: string
   version: number
+  permission?: 'read_only' | 'read_write'
 }
 
 export function buildCanonicalAad(fields: ShareAad): string {
-  return JSON.stringify({
+  const canonical: Record<string, unknown> = {
     from_user_id: fields.from_user_id,
     item_id: fields.item_id,
     to_user_id: fields.to_user_id,
     version: fields.version,
-  })
+    permission: fields.permission,
+  }
+
+  if (fields.item_label && fields.item_label.trim()) {
+    canonical.item_label = fields.item_label.trim()
+  }
+
+  return JSON.stringify(canonical)
 }
 
 export function parseCanonicalAad(aadStr: string): ShareAad {
   const parsed = JSON.parse(aadStr)
+  if (!parsed || typeof parsed !== 'object') {
+    throw new Error('AAD must be a JSON object')
+  }
+
   const requiredKeys = ['from_user_id', 'to_user_id', 'item_id', 'version']
   for (const key of requiredKeys) {
     if (!(key in parsed)) {
       throw new Error(`AAD missing required field: ${key}`)
     }
   }
+  if ('permission' in parsed && parsed.permission !== 'read_only' && parsed.permission !== 'read_write') {
+    throw new Error('AAD permission must be read_only or read_write')
+  }
+  if ('item_label' in parsed && parsed.item_label != null && typeof parsed.item_label !== 'string') {
+    throw new Error('AAD item_label must be a string when provided')
+  }
+  if (!('permission' in parsed)) {
+    parsed.permission = 'read_write'
+  }
+
   return parsed as ShareAad
 }
 

@@ -319,12 +319,28 @@ class SharingKeyRegistrationRequest(BaseModel):
             raise ValueError("encrypted_private_key_iv must decode to exactly 12 bytes")
         return value
 
+
+class SharingKeyResponse(BaseModel):
+    sharing_public_key: str
+    encrypted_private_key: str
+    encrypted_private_key_iv: str
+    algorithm: str
+
+
 class ShareAadFields(BaseModel):
     from_user_id: str
     to_user_id: str
     item_id: str
     version: int
-    
+    permission: str
+
+    @field_validator("permission")
+    @classmethod
+    def validate_permission(cls, value: str) -> str:
+        if value not in {"read_only", "read_write"}:
+            raise ValueError("permission must be read_only or read_write")
+        return value
+
 class ShareInitRequest(BaseModel):
     recipient_email: EmailStr
 
@@ -346,6 +362,14 @@ class ShareCreateRequest(BaseModel):
     aad: str
     algorithm: str
     version: int = Field(..., ge=1)
+    permission: str = "read_write"
+
+    @field_validator("permission")
+    @classmethod
+    def validate_permission(cls, value: str) -> str:
+        if value not in {"read_only", "read_write"}:
+            raise ValueError("permission must be read_only or read_write")
+        return value
 
     @field_validator("sender_ephemeral_public_key", "wrapped_cek", "payload_ciphertext")
     @classmethod
@@ -385,6 +409,7 @@ class SharedInboxItemResponse(BaseModel):
     aad: str
     algorithm: str
     version: int
+    permission: str
     shared_at: datetime
 
 
