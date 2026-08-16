@@ -14,6 +14,7 @@ except ModuleNotFoundError:  # pragma: no cover - fallback for local testing
     srp = None
 
 from app.database import get_db
+from app.audit import append_audit_event
 from app.models import User, Vault
 from app.schemas import (
     RegisterRequest, RegisterResponse,
@@ -128,6 +129,7 @@ async def register(request: RegisterRequest, db: Session = Depends(get_db)):
             vault_iv=vault_iv_bytes
         )
         db.add(new_vault)
+        append_audit_event(db, user_id=str(new_user.id), action="user_registered")
         db.commit()
         db.refresh(new_user)
         
@@ -271,6 +273,8 @@ async def login_verify(request: LoginVerifyRequest, db: Session = Depends(get_db
         data={"sub": session["user_id"]},
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     )
+    append_audit_event(db, user_id=session["user_id"], action="user_logged_in", metadata={"method": "srp"})
+    db.commit()
     
     return LoginVerifyResponse(
         server_proof_m2=base64.b64encode(M2).decode('utf-8'),

@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 import base64
 
 from app.database import get_db
+from app.audit import append_audit_event
 from app.models import BreachResult, User, Vault
 from app.schemas import (
     VaultResponse,
@@ -89,6 +90,12 @@ async def update_vault(
     try:
         vault.encrypted_blob = encrypted_blob_bytes
         vault.vault_iv = vault_iv_bytes
+        append_audit_event(
+            db,
+            user_id=str(current_user.id),
+            action="vault_updated",
+            metadata={"encrypted_blob_bytes": len(encrypted_blob_bytes)},
+        )
         db.commit()
         db.refresh(vault)
     except Exception as e:
@@ -147,6 +154,15 @@ async def save_breach_results(
             )
         )
 
+    append_audit_event(
+        db,
+        user_id=str(current_user.id),
+        action="breach_results_saved",
+        metadata={
+            "results_count": len(request.results),
+            "breached_count": sum(1 for result in request.results if result.breached),
+        },
+    )
     db.commit()
     return BreachResultsListResponse(results=results)
 
@@ -240,6 +256,7 @@ async def change_password(
         
         vault.protected_key = new_protected_key_bytes
         vault.protected_key_iv = new_protected_key_iv_bytes
+        append_audit_event(db, user_id=str(current_user.id), action="password_changed")
                 
         db.commit()
     except Exception as e:

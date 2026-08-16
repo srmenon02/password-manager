@@ -2,8 +2,8 @@ import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useVault } from '@/context/VaultContext'
 import type { VaultEntryInput } from '@/models/vault'
-import type { SharedInboxItem } from '@shared/types'
-import { checkPasswordBreach, createShare, deleteSharedItem, getJwtSubject, getSharedWithMe, getSharingKeys, initShare, registerSharingKeys } from '../services/api'
+import type { AuditLogEntry, AuditLogVerifyResponse, SharedInboxItem } from '@shared/types'
+import { checkPasswordBreach, createShare, deleteSharedItem, getAuditLog, getJwtSubject, getSharedWithMe, getSharingKeys, initShare, registerSharingKeys, verifyAuditLog } from '../services/api'
 import {
   createShareEnvelope,
   decryptShareEnvelope,
@@ -87,6 +87,11 @@ export default function VaultPage() {
   const [openShareError, setOpenShareError] = useState<string | null>(null)
   const [deletingShareId, setDeletingShareId] = useState<string | null>(null)
   const [deleteShareError, setDeleteShareError] = useState<string | null>(null)
+  const [auditEntries, setAuditEntries] = useState<AuditLogEntry[]>([])
+  const [auditLoading, setAuditLoading] = useState(false)
+  const [auditError, setAuditError] = useState<string | null>(null)
+  const [auditVerifyResult, setAuditVerifyResult] = useState<AuditLogVerifyResponse | null>(null)
+  const [auditVerifyLoading, setAuditVerifyLoading] = useState(false)
 
   const currentUserId = useMemo(() => (token ? getJwtSubject(token) : null), [token])
   const selectedShareEntry = useMemo(
@@ -105,6 +110,8 @@ export default function VaultPage() {
     if (!token || !isUnlocked) {
       setSharedInboxItems([])
       setSharedKeyMaterial(null)
+      setAuditEntries([])
+      setAuditVerifyResult(null)
       return
     }
 
@@ -112,29 +119,43 @@ export default function VaultPage() {
     let cancelled = false
 
     async function loadSharedInbox() {
-      try {
-        setSharedInboxLoading(true)
-        setSharedInboxError(null)
-        const [items, keys] = await Promise.all([
-          getSharedWithMe(accessToken),
-          getSharingKeys(accessToken),
-        ])
-        if (!cancelled) {
-          setSharedInboxItems(items)
-          setSharedKeyMaterial(keys)
-        }
-      } catch (error) {
-        if (!cancelled) {
-          const message = error instanceof Error ? error.message : 'Failed to load shared items'
-          setSharedInboxError(message)
-          setSharedInboxItems([])
-          setSharedKeyMaterial(null)
-        }
-      } finally {
-        if (!cancelled) {
-          setSharedInboxLoading(false)
-        }
+      setSharedInboxLoading(true)
+      setAuditLoading(true)
+      setSharedInboxError(null)
+      setAuditError(null)
+
+      const [sharedItemsResult, keysResult, auditResult] = await Promise.allSettled([
+        getSharedWithMe(accessToken),
+        getSharingKeys(accessToken),
+        getAuditLog(accessToken),
+      ])
+
+      if (cancelled) {
+        return
       }
+
+      if (sharedItemsResult.status === 'fulfilled') {
+        setSharedInboxItems(sharedItemsResult.value)
+      } else {
+        setSharedInboxError(sharedItemsResult.reason instanceof Error ? sharedItemsResult.reason.message : 'Failed to load shared items')
+        setSharedInboxItems([])
+      }
+
+      if (keysResult.status === 'fulfilled') {
+        setSharedKeyMaterial(keysResult.value)
+      } else {
+        setSharedKeyMaterial(null)
+      }
+
+      if (auditResult.status === 'fulfilled') {
+        setAuditEntries(auditResult.value)
+      } else {
+        setAuditError(auditResult.reason instanceof Error ? auditResult.reason.message : 'Failed to load audit log')
+        setAuditEntries([])
+      }
+
+      setSharedInboxLoading(false)
+      setAuditLoading(false)
     }
 
     loadSharedInbox()
@@ -278,6 +299,7 @@ export default function VaultPage() {
       })
 
       setSharingSetupMessage('Sharing keys generated and registered')
+      await refreshAuditLog()
     } catch (error) {
       setSharingSetupError(error instanceof Error ? error.message : 'Failed to set up sharing keys')
     } finally {
@@ -390,10 +412,11 @@ export default function VaultPage() {
       })
 
       setShareStatus(
-        `Shared ${selectedShareEntry.site} with ${shareRecipientEmail.trim()} (share ${createdShare.share_id})`
+        `Shared ${selectedShareEntry.site} with ${shareRecipientEmail.trim()}`
       )
       setShareTargetId(null)
       setShareRecipientEmail('')
+      await refreshAuditLog()
     } catch (error) {
       setShareError(error instanceof Error ? error.message : 'Failed to share credential')
     } finally {
@@ -417,11 +440,54 @@ export default function VaultPage() {
       if (openedShare?.shareId === shareId) {
         setOpenedShare(null)
       }
+      await refreshAuditLog()
     } catch (error) {
       setDeleteShareError(error instanceof Error ? error.message : 'Failed to delete shared item')
     } finally {
       setDeletingShareId(null)
     }
+  }
+
+  async function refreshAuditLog() {
+    if (!token) {
+      return
+    }
+
+    try {
+      setAuditLoading(true)
+      setAuditError(null)
+      const entries = await getAuditLog(token)
+      setAuditEntries(entries)
+    } catch (error) {
+      setAuditError(error instanceof Error ? error.message : 'Failed to load audit log')
+    } finally {
+      setAuditLoading(false)
+    }
+  }
+
+  async function handleVerifyAuditLog() {
+    if (!token) {
+      return
+    }
+
+    try {
+      setAuditVerifyLoading(true)
+      setAuditError(null)
+      setAuditVerifyResult(await verifyAuditLog(token))
+      await refreshAuditLog()
+    } catch (error) {
+      setAuditError(error instanceof Error ? error.message : 'Failed to verify audit log')
+      setAuditVerifyResult(null)
+    } finally {
+      setAuditVerifyLoading(false)
+    }
+  }
+
+  function formatAuditAction(action: string) {
+    return action
+      .split('_')
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' ')
   }
 
   function validateForm(): boolean {
@@ -476,6 +542,7 @@ export default function VaultPage() {
     try {
       await saveVault()
       setSaveMessage('Vault saved')
+      await refreshAuditLog()
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : 'Failed to save vault')
     }
@@ -737,6 +804,68 @@ export default function VaultPage() {
           <p className="mt-4 text-xs text-on-surface-variant">
             Shared items are encrypted in the browser before they are sent to the server. The recipient must have sharing keys registered first.
           </p>
+        </section>
+
+        <section className="mb-10 border border-surface-dim bg-surface-container-lowest p-6 rounded-lg shadow-sm">
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.14em] text-on-surface-variant font-bold">Audit log</p>
+              <h2 className="font-headline-md text-headline-md mb-2 text-ink">Tamper-evident activity chain</h2>
+              <p className="text-sm text-on-surface-variant">Hash-linked account events, newest first.</p>
+            </div>
+            <button
+              type="button"
+              className="vault-btn-secondary px-4 py-2 font-body-md whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleVerifyAuditLog}
+              disabled={auditVerifyLoading || auditLoading}
+            >
+              {auditVerifyLoading ? 'Verifying...' : 'Verify chain integrity'}
+            </button>
+          </div>
+
+          {auditVerifyResult && (
+            <div className={`mt-4 p-3 rounded-md border text-sm ${auditVerifyResult.is_valid ? 'border-green-200 bg-green-50 text-green-800' : 'border-red-200 bg-red-50 text-red-800'}`}>
+              {auditVerifyResult.is_valid
+                ? `Chain valid across ${auditVerifyResult.checked_entries} entries`
+                : `Chain invalid at entry ${auditVerifyResult.broken_entry_id ?? 'unknown'}`}
+            </div>
+          )}
+
+          {auditError && <div className="mt-4 p-3 rounded-md border border-red-200 bg-red-50 text-red-800 text-sm">{auditError}</div>}
+          {auditLoading && <p className="mt-4 text-sm text-on-surface-variant">Loading audit log...</p>}
+
+          {!auditLoading && auditEntries.length === 0 && (
+            <p className="mt-4 text-sm text-on-surface-variant">No audit entries yet.</p>
+          )}
+
+          {!auditLoading && auditEntries.length > 0 && (
+            <div className="mt-6 space-y-3">
+              {auditEntries.map((entry) => (
+                <div key={entry.id} className="rounded-md border border-surface-dim bg-white p-4">
+                  <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                    <div>
+                      <p className="font-bold text-ink">{formatAuditAction(entry.action)}</p>
+                      <p className="text-sm text-on-surface-variant">{new Date(entry.occurred_at).toLocaleString()}</p>
+                    </div>
+                    <span className="rounded-full bg-surface-dim px-2 py-1 text-xs font-bold text-ink">
+                      {entry.entry_hash.slice(0, 12)}
+                    </span>
+                  </div>
+
+                  {Object.keys(entry.metadata).length > 0 && (
+                    <dl className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-on-surface-variant">
+                      {Object.entries(entry.metadata).map(([key, value]) => (
+                        <div key={key} className="rounded border border-surface-dim px-3 py-2">
+                          <dt className="font-bold text-ink">{formatAuditAction(key)}</dt>
+                          <dd className="break-all">{String(value)}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </section>
 
         <form id="vault-entry-form" onSubmit={handleSubmitEntry} className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10 bg-taupe border-2 border-ink p-6">

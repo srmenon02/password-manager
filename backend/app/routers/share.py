@@ -9,6 +9,7 @@ from sqlalchemy import func
 import json
 
 from app.auth import get_current_user
+from app.audit import append_audit_event
 from app.database import get_db
 from app.models import ShareRevocationAudit, SharedItem, User
 from app.schemas import (
@@ -65,6 +66,12 @@ async def register_sharing_keys(
     current_user.sharing_private_key_encrypted = sharing_private_key_encrypted
     current_user.sharing_private_key_iv = sharing_private_key_iv
     current_user.sharing_key_algorithm = request.algorithm
+    append_audit_event(
+        db,
+        user_id=str(current_user.id),
+        action="sharing_keys_registered",
+        metadata={"algorithm": request.algorithm},
+    )
     db.commit()
 
 
@@ -205,6 +212,18 @@ async def create_share(
     )
 
     db.add(share)
+    aad = json.loads(request.aad)
+    append_audit_event(
+        db,
+        user_id=str(current_user.id),
+        action="share_created",
+        metadata={
+            "share_id": str(share.id),
+            "to_user_id": str(recipient.id),
+            "item_id": aad.get("item_id"),
+            "permission": request.permission,
+        },
+    )
     db.commit()
     db.refresh(share)
 
@@ -212,6 +231,7 @@ async def create_share(
 
 
 REQUIRED_AAD_FIELDS = {"from_user_id", "to_user_id", "item_id", "version", "permission"}
+OPTIONAL_AAD_FIELDS = {"item_label"}
 ALLOWED_SHARE_PERMISSIONS = {"read_only", "read_write"}
 
 def validate_and_parse_aad(aad_str: str, current_user_id: str, recipient_id: str, expected_version: int, expected_permission: str | None = None) -> dict:
@@ -223,10 +243,22 @@ def validate_and_parse_aad(aad_str: str, current_user_id: str, recipient_id: str
             detail={"error": "invalid_aad", "message": "AAD must be valid JSON"},
         )
 
-    if not isinstance(aad, dict) or set(aad.keys()) != REQUIRED_AAD_FIELDS:
+    if not isinstance(aad, dict):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"error": "invalid_aad_schema", "message": f"AAD must contain exactly: {sorted(REQUIRED_AAD_FIELDS)}"},
+            detail={"error": "invalid_aad_schema", "message": f"AAD must contain required fields: {sorted(REQUIRED_AAD_FIELDS)}"},
+        )
+
+    aad_keys = set(aad.keys())
+    missing_required = REQUIRED_AAD_FIELDS - aad_keys
+    unknown_fields = aad_keys - REQUIRED_AAD_FIELDS - OPTIONAL_AAD_FIELDS
+    if missing_required or unknown_fields:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "error": "invalid_aad_schema",
+                "message": f"AAD required: {sorted(REQUIRED_AAD_FIELDS)} optional: {sorted(OPTIONAL_AAD_FIELDS)}",
+            },
         )
 
     if aad["from_user_id"] != current_user_id:
@@ -346,6 +378,17 @@ async def revoke_share(
         revoked_at=revoked_at,
     )
     db.add(audit_entry)
+    append_audit_event(
+        db,
+        user_id=str(current_user.id),
+        action="share_revoked",
+        metadata={
+            "share_id": str(row.id),
+            "from_user_id": str(row.from_user_id),
+            "to_user_id": str(row.to_user_id),
+        },
+        occurred_at=revoked_at,
+    )
     db.commit()
 
     await notify_recipient_of_revocation(db, audit_entry)

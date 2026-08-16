@@ -13,6 +13,9 @@ import type {
   ShareCreateRequest,
   ShareCreateResponse,
   SharedInboxItem,
+  AuditLogEntry,
+  AuditLogListResponse,
+  AuditLogVerifyResponse,
   ErrorResponse,
   BreachResultInput,
   BreachResultResponse,
@@ -372,4 +375,37 @@ export async function revokeShare(token: string, shareId: string): Promise<void>
 
 export async function deleteSharedItem(token: string, shareId: string): Promise<void> {
   await revokeShare(token, shareId)
+}
+
+export async function getAuditLog(token: string): Promise<AuditLogEntry[]> {
+  const response = await fetch(`${API_URL}/api/audit`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+
+  if (!response.ok) {
+    const errorData: ErrorResponse & { detail?: { message?: string } } = await response.json()
+    throw new Error(errorData.message || errorData.detail?.message || 'Failed to load audit log')
+  }
+
+  const result = await response.json() as AuditLogListResponse
+  return result.entries
+}
+
+export async function verifyAuditLog(token: string): Promise<AuditLogVerifyResponse> {
+  const response = await fetch(`${API_URL}/api/audit/verify`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+
+  if (!response.ok) {
+    const errorData: ErrorResponse & { detail?: { message?: string } } = await response.json()
+    throw new Error(errorData.message || errorData.detail?.message || 'Failed to verify audit log')
+  }
+
+  return response.json()
 }
