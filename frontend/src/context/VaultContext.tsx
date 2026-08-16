@@ -13,6 +13,7 @@ import { createVaultEntry, type VaultEntryInput, updateVaultEntry } from '@/mode
 
 interface VaultContextValue {
   vaultData: VaultData | null
+  vaultKey: CryptoKey | null
   token: string | null
   isUnlocked: boolean
   isSaving: boolean
@@ -113,6 +114,7 @@ export function VaultProvider({ children }: PropsWithChildren) {
   const value = useMemo<VaultContextValue>(
     () => ({
       vaultData,
+      vaultKey,
       token,
       isUnlocked: vaultData !== null && vaultKey !== null,
       isSaving,
@@ -132,9 +134,9 @@ export function VaultProvider({ children }: PropsWithChildren) {
       removeEntry,
       saveVault,
       setVaultSession,
+      vaultKey,
       token,
       vaultData,
-      vaultKey,
     ]
   )
 

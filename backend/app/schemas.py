@@ -291,3 +291,127 @@ class BreachResultResponse(BaseModel):
 
 class BreachResultsListResponse(BaseModel):
     results: List[BreachResultResponse]
+
+
+class SharingKeyRegistrationRequest(BaseModel):
+    sharing_public_key: str
+    encrypted_private_key: str
+    encrypted_private_key_iv: str
+    algorithm: str
+
+    @field_validator("sharing_public_key", "encrypted_private_key")
+    @classmethod
+    def validate_base64_blob(cls, value: str) -> str:
+        try:
+            base64.b64decode(value, validate=True)
+        except Exception as exc:
+            raise ValueError("value must be valid base64") from exc
+        return value
+
+    @field_validator("encrypted_private_key_iv")
+    @classmethod
+    def validate_private_key_iv(cls, value: str) -> str:
+        try:
+            payload = base64.b64decode(value, validate=True)
+        except Exception as exc:
+            raise ValueError("encrypted_private_key_iv must be valid base64") from exc
+        if len(payload) != 12:
+            raise ValueError("encrypted_private_key_iv must decode to exactly 12 bytes")
+        return value
+
+
+class SharingKeyResponse(BaseModel):
+    sharing_public_key: str
+    encrypted_private_key: str
+    encrypted_private_key_iv: str
+    algorithm: str
+
+
+class ShareAadFields(BaseModel):
+    from_user_id: str
+    to_user_id: str
+    item_id: str
+    version: int
+    permission: str
+
+    @field_validator("permission")
+    @classmethod
+    def validate_permission(cls, value: str) -> str:
+        if value not in {"read_only", "read_write"}:
+            raise ValueError("permission must be read_only or read_write")
+        return value
+
+class ShareInitRequest(BaseModel):
+    recipient_email: EmailStr
+
+
+class ShareInitResponse(BaseModel):
+    recipient_user_id: str
+    recipient_sharing_public_key: str
+    recipient_sharing_algorithm: str
+    recipient_key_fingerprint: str
+
+
+class ShareCreateRequest(BaseModel):
+    to_user_id: str
+    sender_ephemeral_public_key: str
+    wrapped_cek: str
+    wrapped_cek_iv: str
+    payload_ciphertext: str
+    payload_iv: str
+    aad: str
+    algorithm: str
+    version: int = Field(..., ge=1)
+    permission: str = "read_write"
+
+    @field_validator("permission")
+    @classmethod
+    def validate_permission(cls, value: str) -> str:
+        if value not in {"read_only", "read_write"}:
+            raise ValueError("permission must be read_only or read_write")
+        return value
+
+    @field_validator("sender_ephemeral_public_key", "wrapped_cek", "payload_ciphertext")
+    @classmethod
+    def validate_base64_payload(cls, value: str) -> str:
+        try:
+            base64.b64decode(value, validate=True)
+        except Exception as exc:
+            raise ValueError("value must be valid base64") from exc
+        return value
+
+    @field_validator("wrapped_cek_iv", "payload_iv")
+    @classmethod
+    def validate_iv_fields(cls, value: str) -> str:
+        try:
+            payload = base64.b64decode(value, validate=True)
+        except Exception as exc:
+            raise ValueError("IV field must be valid base64") from exc
+        if len(payload) != 12:
+            raise ValueError("IV field must decode to exactly 12 bytes")
+        return value
+
+
+class ShareCreateResponse(BaseModel):
+    share_id: str
+    shared_at: datetime
+
+
+class SharedInboxItemResponse(BaseModel):
+    share_id: str
+    from_user_id: str
+    to_user_id: str
+    sender_ephemeral_public_key: str
+    wrapped_cek: str
+    wrapped_cek_iv: str
+    payload_ciphertext: str
+    payload_iv: str
+    aad: str
+    algorithm: str
+    version: int
+    permission: str
+    shared_at: datetime
+
+
+class SharedInboxResponse(BaseModel):
+    items: List[SharedInboxItemResponse]

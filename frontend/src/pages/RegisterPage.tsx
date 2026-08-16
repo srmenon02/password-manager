@@ -116,9 +116,9 @@ export default function RegisterPage() {
       <main className="flex-grow flex flex-col lg:flex-row relative">
         <div className="hidden lg:flex w-full lg:w-1/2 items-center justify-center bg-surface-container-highest p-margin-safe border-r border-taupe">
           <div className="max-w-md text-center">
-            <h3 className="font-headline-md text-headline-md font-bold text-ink mb-4 tracking-tighter">Begin your journey to effortless security.</h3>
+            <h3 className="font-headline-md text-headline-md font-bold text-ink mb-4 tracking-tighter">Create your secured vault.</h3>
             <p className="font-body-lg text-body-lg text-on-surface-variant">
-              Create an account to start generating unguessable keys and securing your digital footprint.
+              Fortifies your logins, passwords, and digital identity.
             </p>
           </div>
         </div>

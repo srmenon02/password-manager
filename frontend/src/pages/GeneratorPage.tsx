@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 
 const UPPER = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 const LOWER = 'abcdefghijklmnopqrstuvwxyz'
@@ -54,7 +54,6 @@ export default function GeneratorPage() {
   const [useNumbers, setUseNumbers] = useState(true)
   const [useSymbols, setUseSymbols] = useState(true)
   const [seed, setSeed] = useState(0)
-  const navigate = useNavigate()
 
   const password = useMemo(
     () => generatePassword(length, useUpper, useLower, useNumbers, useSymbols),

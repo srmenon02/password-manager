@@ -71,6 +71,86 @@ export interface VaultUpdateRequest {
   vault_iv: string
 }
 
+// Secure sharing protocol (Step 30)
+export type SharingAlgorithm = 'ECDH-P256-HKDF-AES256GCM'
+export type SharePermission = 'read_only' | 'read_write'
+
+export interface SharingKeyRegistrationRequest {
+  sharing_public_key: string // SPKI base64
+  encrypted_private_key: string // PKCS8 encrypted with master-derived key (base64)
+  encrypted_private_key_iv: string // Base64 encoded, 12 bytes
+  algorithm: SharingAlgorithm
+}
+
+export interface ShareInitRequest {
+  recipient_email: string
+}
+
+export interface ShareInitResponse {
+  recipient_user_id: string
+  recipient_sharing_public_key: string // SPKI base64
+  recipient_sharing_algorithm: SharingAlgorithm
+  recipient_key_fingerprint: string
+}
+
+export interface ShareCreateRequest {
+  to_user_id: string
+  sender_ephemeral_public_key: string // SPKI base64
+  wrapped_cek: string // Base64
+  wrapped_cek_iv: string // Base64, 12 bytes
+  payload_ciphertext: string // Base64
+  payload_iv: string // Base64, 12 bytes
+  aad: string // JSON string used as AES-GCM AAD
+  algorithm: SharingAlgorithm
+  version: number
+  permission: SharePermission
+}
+
+export interface ShareCreateResponse {
+  share_id: string
+  shared_at: string
+}
+
+export interface SharedInboxItem {
+  share_id: string
+  from_user_id: string
+  from_user_email?: string
+  to_user_id: string
+  sender_ephemeral_public_key: string
+  wrapped_cek: string
+  wrapped_cek_iv: string
+  payload_ciphertext: string
+  payload_iv: string
+  aad: string
+  algorithm: SharingAlgorithm
+  version: number
+  permission: SharePermission
+  item_label?: string
+  shared_at: string
+}
+
+export interface BreachResultInput {
+  entry_id: string
+  password_sha1: string
+  breached: boolean
+  last_seen_count?: number | null
+}
+
+export interface BreachResultResponse {
+  entry_id: string
+  breached: boolean
+  checked_at: string
+  last_seen_count?: number | null
+}
+
+export interface BreachResultsSaveRequest {
+  results: BreachResultInput[]
+}
+
+export interface BreachResultsListResponse {
+  results: BreachResultResponse[]
+}
+
 // Error response
 export interface ErrorResponse {
   error: string
