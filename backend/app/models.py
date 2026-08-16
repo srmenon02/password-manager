@@ -51,6 +51,7 @@ class User(Base):
     shared_items_sent = relationship("SharedItem", foreign_keys="SharedItem.from_user_id", back_populates="from_user")
     shared_items_received = relationship("SharedItem", foreign_keys="SharedItem.to_user_id", back_populates="to_user")
     breach_results = relationship("BreachResult", back_populates="user", cascade="all, delete-orphan")
+    audit_log_entries = relationship("AuditLogEntry", back_populates="user", cascade="all, delete-orphan")
 
 
 class Vault(Base):
@@ -107,6 +108,21 @@ class BreachResult(Base):
     __table_args__ = (
         UniqueConstraint("user_id", "entry_id", name="uq_breach_results_user_entry"),
     )
+
+
+class AuditLogEntry(Base):
+    __tablename__ = "audit_log_entries"
+
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    user_id = Column(GUID(), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    action = Column(String, nullable=False, index=True)
+    metadata_json = Column(Text, nullable=False, default="{}")
+    previous_hash = Column(String(64), nullable=True)
+    entry_hash = Column(String(64), nullable=False, unique=True)
+    occurred_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False, index=True)
+
+    user = relationship("User", back_populates="audit_log_entries")
+
 
 class ShareRevocationAudit(Base):
     __tablename__ = "share_revocation_audit"

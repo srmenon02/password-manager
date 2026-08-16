@@ -151,6 +151,30 @@ export interface BreachResultsListResponse {
   results: BreachResultResponse[]
 }
 
+export interface AuditLogEntry {
+  id: string
+  action: string
+  metadata: Record<string, string | number | boolean | null>
+  previous_hash?: string | null
+  entry_hash: string
+  occurred_at: string
+}
+
+export interface AuditLogListResponse {
+  entries: AuditLogEntry[]
+}
+
+export interface AuditLogVerifyResponse {
+  is_valid: boolean
+  checked_entries: number
+  broken_entry_id?: string | null
+  expected_previous_hash?: string | null
+  actual_previous_hash?: string | null
+  expected_hash?: string | null
+  actual_hash?: string | null
+  latest_hash?: string | null
+}
+
 // Error response
 export interface ErrorResponse {
   error: string

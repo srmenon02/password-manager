@@ -17,7 +17,7 @@ from app.config import settings
 from app.database import engine, Base
 from app.services.breach_checker import check_and_update_breaches
 
-from app.routers import auth, share, vault
+from app.routers import audit, auth, share, vault
 
 
 def ensure_schema_compatibility() -> None:
@@ -141,6 +141,7 @@ async def health_check():
 app.include_router(auth.router, prefix="/api", tags=["authentication"])
 app.include_router(vault.router, prefix="/api/vault", tags=["vault"])
 app.include_router(share.router, prefix="/api/share", tags=["sharing"])
+app.include_router(audit.router, prefix="/api/audit", tags=["audit"])
 
 
 if __name__ == "__main__":

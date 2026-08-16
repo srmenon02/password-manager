@@ -1,6 +1,7 @@
 import base64
+import json
 from pydantic import BaseModel, EmailStr, ConfigDict, Field, field_validator
-from typing import Optional, List
+from typing import Any, Optional, List
 from datetime import datetime
 from uuid import UUID
 
@@ -291,6 +292,39 @@ class BreachResultResponse(BaseModel):
 
 class BreachResultsListResponse(BaseModel):
     results: List[BreachResultResponse]
+
+
+class AuditLogEntryResponse(BaseModel):
+    id: str
+    action: str
+    metadata: dict[str, Any]
+    previous_hash: Optional[str] = None
+    entry_hash: str
+    occurred_at: datetime
+
+    @field_validator("metadata", mode="before")
+    @classmethod
+    def parse_metadata(cls, value: Any) -> dict[str, Any]:
+        if isinstance(value, str):
+            return json.loads(value)
+        if value is None:
+            return {}
+        return value
+
+
+class AuditLogListResponse(BaseModel):
+    entries: List[AuditLogEntryResponse]
+
+
+class AuditLogVerifyResponse(BaseModel):
+    is_valid: bool
+    checked_entries: int
+    broken_entry_id: Optional[str] = None
+    expected_previous_hash: Optional[str] = None
+    actual_previous_hash: Optional[str] = None
+    expected_hash: Optional[str] = None
+    actual_hash: Optional[str] = None
+    latest_hash: Optional[str] = None
 
 
 class SharingKeyRegistrationRequest(BaseModel):

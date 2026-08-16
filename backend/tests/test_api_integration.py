@@ -183,6 +183,22 @@ def test_register_and_vault_flow(client):
     assert update_response.status_code == 200
     assert "updated_at" in update_response.json()
 
+    audit_response = client.get(
+        "/api/audit",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert audit_response.status_code == 200
+    actions = [entry["action"] for entry in audit_response.json()["entries"]]
+    assert "vault_updated" in actions
+    assert "user_registered" in actions
+
+    verify_response = client.get(
+        "/api/audit/verify",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert verify_response.status_code == 200
+    assert verify_response.json()["is_valid"] is True
+
 
 def test_login_init_returns_404_for_unknown_email(client):
     response = client.post(
@@ -409,7 +425,7 @@ def test_share_create_rejects_invalid_permission_and_keeps_permission_in_inbox(c
             "wrapped_cek_iv": make_bytes(12),
             "payload_ciphertext": make_bytes(32),
             "payload_iv": make_bytes(12),
-            "aad": '{"from_user_id": "' + sender_id + '", "to_user_id": "' + recipient_id + '", "item_id": "entry-1", "version": 1, "permission": "read_only"}',
+            "aad": '{"from_user_id": "' + sender_id + '", "to_user_id": "' + recipient_id + '", "item_id": "entry-1", "item_label": "Example / user", "version": 1, "permission": "read_only"}',
             "algorithm": "ECDH-P256-HKDF-AES256GCM",
             "version": 1,
             "permission": "read_only",
@@ -495,3 +511,10 @@ def test_recipient_can_delete_shared_item_from_inbox(client):
     )
     assert inbox_response.status_code == 200
     assert inbox_response.json()["items"] == []
+
+    audit_response = client.get(
+        "/api/audit",
+        headers={"Authorization": f"Bearer {recipient_token}"},
+    )
+    assert audit_response.status_code == 200
+    assert audit_response.json()["entries"][0]["action"] == "share_revoked"
