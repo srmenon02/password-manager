@@ -155,10 +155,6 @@ export default function LoginPage() {
           </div>
         </div>
       </main>
-
-      <footer className="w-full py-12 bg-paper border-t border-taupe flex flex-col md:flex-row justify-between items-center px-gutter gap-4 mt-auto">
-        <div className="font-headline-md text-headline-md text-primary">VaultKey</div>
-      </footer>
     </div>
   )
 }
