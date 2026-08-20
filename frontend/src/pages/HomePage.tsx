@@ -57,10 +57,6 @@ function HomePage() {
           </div>
         </section>
       </main>
-
-      <footer className="w-full py-12 bg-paper border-t border-taupe flex flex-col md:flex-row justify-between items-center px-gutter gap-4 font-label-caps text-label-caps">
-        <div className="font-headline-md text-headline-md text-primary font-bold">VaultKey</div>
-      </footer>
     </div>
   )
 }

@@ -109,9 +109,12 @@ export default function RegisterPage() {
 
   return (
     <div className="bg-paper text-ink min-h-screen flex flex-col antialiased selection:bg-mint selection:text-ink">
-      <nav className="flex justify-between items-center px-gutter w-full max-w-full h-16 bg-paper">
-        <Link to="/" className="font-headline-md text-headline-md font-bold text-primary tracking-tighter hover:opacity-75 transition-opacity">VaultKey</Link>
-      </nav>
+      <Link
+        to="/"
+        className="absolute top-0 left-0 px-gutter h-16 flex items-center font-headline-md text-headline-md font-bold text-primary tracking-tighter hover:opacity-75 transition-opacity z-10"
+      >
+        VaultKey
+      </Link>
 
       <main className="flex-grow flex flex-col lg:flex-row relative">
         <div className="hidden lg:flex w-full lg:w-1/2 items-center justify-center bg-surface-container-highest p-margin-safe border-r border-taupe">
@@ -204,21 +207,26 @@ export default function RegisterPage() {
               </div>
 
               <div className="mt-8 flex flex-col gap-6">
+                <p className="text-sm text-on-surface-variant text-center">
+                  Master passwords cannot be reset.
+                </p>
                 <button className="relative w-full rounded-full p-[2px] transition-transform duration-300 hover:scale-105 active:scale-100 overflow-hidden group cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed" type="submit" disabled={loading}>
                   <div className="absolute inset-0 register-button-bg z-0"></div>
                   <div className="relative z-10 w-full bg-ink text-mint font-body-lg text-body-lg py-4 font-bold rounded-full text-center flex items-center justify-center">
                     {loading ? 'Creating Account...' : 'Register'}
                   </div>
                 </button>
+                <p className="text-sm text-on-surface-variant text-center">
+                  Already have an account?{' '}
+                  <Link to="/login" className="text-ink font-bold hover:text-pink transition-colors duration-200">
+                    Log In
+                  </Link>
+                </p>
               </div>
             </form>
           </div>
         </div>
       </main>
-
-      <footer className="w-full py-12 border-t border-taupe bg-paper flex flex-col md:flex-row justify-between items-center px-gutter gap-4">
-        <div className="font-headline-md text-headline-md font-bold text-primary">VaultKey</div>
-      </footer>
     </div>
   )
 }

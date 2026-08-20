@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { useVault } from '@/context/VaultContext'
 
 const UPPER = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 const LOWER = 'abcdefghijklmnopqrstuvwxyz'
@@ -48,12 +49,21 @@ function generatePassword(length: number, useUpper: boolean, useLower: boolean, 
 }
 
 export default function GeneratorPage() {
+  const navigate = useNavigate()
+  const { clearVaultSession } = useVault()
+  const isLoggedIn = Boolean(localStorage.getItem('vaultkey_token'))
   const [length, setLength] = useState(16)
   const [useUpper, setUseUpper] = useState(true)
   const [useLower, setUseLower] = useState(true)
   const [useNumbers, setUseNumbers] = useState(true)
   const [useSymbols, setUseSymbols] = useState(true)
   const [seed, setSeed] = useState(0)
+
+  function handleLogout() {
+    localStorage.clear()
+    clearVaultSession()
+    navigate('/')
+  }
 
   const password = useMemo(
     () => generatePassword(length, useUpper, useLower, useNumbers, useSymbols),
@@ -73,20 +83,25 @@ export default function GeneratorPage() {
 
   return (
     <div className="bg-paper text-on-surface font-body-md min-h-screen flex flex-col selection:bg-mint selection:text-ink">
-      <nav className="bg-paper w-full h-16 flex justify-between items-center px-gutter max-w-full">
+      <header className="w-full h-16 bg-paper flex justify-between items-center px-gutter max-w-full z-50 sticky top-0 border-b border-surface-dim">
         <Link to="/" className="font-headline-md text-headline-md text-primary tracking-tighter hover:opacity-75 transition-opacity">VaultKey</Link>
-        <div className="hidden md:flex gap-8 items-center">
-          <Link to="/vault" className="text-on-surface-variant font-body-md cursor-pointer hover:text-pink transition-colors duration-200">Vault</Link>
-          <span className="text-on-surface-variant font-body-md cursor-pointer hover:text-pink transition-colors duration-200">Generator</span>
+        <nav className="hidden md:flex gap-8 items-center font-body-md text-body-md">
+          {isLoggedIn && <Link to="/vault" className="text-on-surface-variant hover:text-pink transition-colors duration-200">Vault</Link>}
+          {isLoggedIn && <span className="text-ink border-b border-ink">Generator</span>}
+          {isLoggedIn && <Link to="/vault/sharing" className="text-on-surface-variant hover:text-pink transition-colors duration-200">Sharing</Link>}
+          {isLoggedIn && <Link to="/vault/activity" className="text-on-surface-variant hover:text-pink transition-colors duration-200">Activity</Link>}
+          {isLoggedIn && <Link to="/vault/breach" className="text-on-surface-variant hover:text-pink transition-colors duration-200">Breach</Link>}
+        </nav>
+        <div className="flex gap-4 items-center">
+          {isLoggedIn && <button className="vault-btn-secondary px-4 py-2 font-body-md hidden md:block" onClick={handleLogout}>Log Out</button>}
         </div>
-      </nav>
+      </header>
 
       <main className="flex-grow flex flex-col md:flex-row px-margin-safe py-12 md:py-24 gap-12 md:gap-24 relative overflow-hidden">
         <div className="w-full md:w-1/2 flex flex-col z-10 md:mt-hero-offset">
           <h1 className="font-headline-xl text-headline-xl-mobile md:text-headline-xl text-ink mb-6">Create something unguessable.</h1>
           <div className="bg-mint border-2 border-ink p-8 relative group hover:bg-sage transition-colors duration-500 ease-in-out cursor-pointer shadow-[8px_8px_0px_0px_rgba(25,9,34,1)]">
             <div className="flex justify-between items-start mb-16">
-              <span className="font-label-caps text-label-caps text-ink font-bold">GENERATED PASSWORD</span>
               <button aria-label="Copy Password" className="text-ink hover:text-pink transition-colors" onClick={copyPassword}>
                 <span className="material-symbols-outlined">content_copy</span>
               </button>
@@ -145,12 +160,6 @@ export default function GeneratorPage() {
 
         <div className="absolute top-0 right-0 w-2/3 h-full -z-10 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 70% 30%, #FFB7C3 0%, transparent 60%)' }}></div>
       </main>
-
-      <footer className="bg-paper w-full py-12 border-t border-taupe flex flex-col md:flex-row justify-between items-center px-gutter gap-4">
-        <div className="font-headline-md text-headline-md text-primary">VaultKey</div>
-        <div className="flex gap-6 font-label-caps text-label-caps">
-        </div>
-      </footer>
     </div>
   )
 }
