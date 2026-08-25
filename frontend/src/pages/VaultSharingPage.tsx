@@ -350,7 +350,7 @@ function VaultSharingPage() {
           <Link to="/vault/breach" className="text-on-surface-variant hover:text-pink transition-colors duration-200">Breach</Link>
         </nav>
         <div className="flex gap-4 items-center">
-          <button className="vault-btn-primary px-4 py-2 font-body-md font-bold" onClick={handleLogout}>Log Out</button>
+          <Link to="/" className="text-on-surface-variant hover:text-pink transition-colors duration-200">Log Out</Link>
         </div>
       </header>
 
