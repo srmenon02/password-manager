@@ -1,11 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useVault } from '@/context/VaultContext'
-import { checkPasswordBreach } from '@/services/api'
+import { checkPasswordBreach, saveBreachResults } from '@/services/api'
+
+async function getPasswordSha1(password: string) {
+  const hashBuffer = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(password))
+  return Array.from(new Uint8Array(hashBuffer)).map((byte) => byte.toString(16).padStart(2, '0')).join('').toUpperCase()
+}
 
 function VaultBreachPage() {
   const navigate = useNavigate()
-  const { vaultData, isUnlocked, clearVaultSession } = useVault()
+  const { vaultData, token, isUnlocked, clearVaultSession } = useVault()
 
   function handleLogout() {
     localStorage.clear()
@@ -64,6 +69,15 @@ function VaultBreachPage() {
 
       if (!cancelled) {
         setBreachedEntryIds(new Set(results.filter(([, breached]) => breached).map(([id]) => id)))
+        if (token) {
+          try {
+            await saveBreachResults(token, await Promise.all(entries.map(async (entry, index) => ({
+              entry_id: entry.id,
+              password_sha1: await getPasswordSha1(entry.password),
+              breached: results[index][1],
+            }))))
+          } catch {}
+        }
         setLoading(false)
       }
     }
@@ -73,7 +87,7 @@ function VaultBreachPage() {
     return () => {
       cancelled = true
     }
-  }, [vaultData, isUnlocked])
+  }, [vaultData, isUnlocked, token])
 
   if (!isUnlocked) {
     return (
@@ -108,36 +122,31 @@ function VaultBreachPage() {
         </div>
       </header>
 
-      <main className="flex-grow flex flex-col pt-10 px-margin-safe pb-24">
-        <div className="flex items-end justify-between gap-4 mb-8 flex-wrap">
-          <div>
-            <h1 className="font-headline-xl text-headline-xl mt-2 text-ink font-bold">Breach dashboard</h1>
-          </div>
-        </div>
+      <main className="flex-grow w-full max-w-7xl mx-auto px-margin-safe py-hero-offset flex flex-col md:flex-row gap-gutter">
+        <section className="md:w-1/3 flex flex-col gap-6">
+          <h1 className="font-headline-xl-mobile md:font-headline-xl text-headline-xl-mobile md:text-headline-xl text-ink">Breach Alerts</h1>
+          <p className="font-body-lg text-body-lg text-on-surface-variant leading-relaxed">Known breached passwords.</p>
+          {loading && <p className="text-on-surface-variant">Scanning credentials against breach data...</p>}
+        </section>
 
-        {loading && <p className="mb-6 text-sm text-on-surface-variant">Scanning credentials against breach data...</p>}
-
-        {!loading && breachedEntries.length === 0 && (
-          <div className="border border-red-200 bg-red-50 p-6 rounded-lg shadow-sm">
-            <p className="text-sm text-red-700">No breached credentials detected in this vault.</p>
-          </div>
-        )}
-
-        {!loading && breachedEntries.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {breachedEntries.map((entry) => (
-              <div key={entry.id} className="rounded-md border border-red-200 bg-white px-4 py-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="font-bold text-ink">{entry.site}</p>
-                    <p className="text-sm text-on-surface-variant">{entry.username}</p>
+        <section className="md:w-2/3 flex flex-col gap-8 mt-12 md:mt-0">
+          {!loading && breachedEntries.length === 0 && <div className="bg-sage p-8 border border-ink"><p className="text-on-surface-variant">No breached credentials detected in this vault.</p></div>}
+          {!loading && breachedEntries.map((entry) => (
+            <article key={entry.id} className="bg-surface-container-low p-8 border border-ink relative overflow-hidden hover:bg-surface-container-high transition-colors duration-300">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                <div>
+                  <div className="flex flex-wrap items-center gap-3 mb-2">
+                    <h2 className="font-headline-md text-headline-md text-ink">{entry.site}</h2>
+                    <span className="bg-blush text-ink font-label-caps text-label-caps px-3 py-1 rounded-full uppercase tracking-wider">Exposed</span>
                   </div>
-                  <span className="bg-red-100 border border-red-300 px-2 py-1 rounded-full text-xs font-bold text-red-800">Breached</span>
+                  <p className="font-body-md text-body-md text-on-surface-variant font-mono">{entry.username}</p>
+                  <p className="font-body-md text-body-md text-on-surface-variant text-sm mt-1">Password appears in known breach data</p>
                 </div>
+                <button type="button" className="shine-button px-6 py-3 uppercase" onClick={() => navigate('/vault')}>Change Password</button>
               </div>
-            ))}
-          </div>
-        )}
+            </article>
+          ))}
+        </section>
       </main>
     </div>
   )
