@@ -354,137 +354,43 @@ function VaultSharingPage() {
         </div>
       </header>
 
-      <main className="flex-grow flex flex-col pt-10 px-margin-safe pb-24">
-        <div className="flex items-end justify-between gap-4 mb-8 flex-wrap">
-          <div>
-            <p className="text-xs uppercase tracking-[0.14em] text-on-surface-variant font-bold"></p>
-            <h1 className="font-headline-xl text-headline-xl mt-2 text-ink font-bold">Secure Sharing</h1>
-          </div>
+      <main className="flex-grow px-margin-safe py-12 md:py-hero-offset max-w-7xl mx-auto w-full">
+        <section className="mb-16 md:ml-[15%]">
+          <h1 className="font-headline-xl-mobile md:font-headline-xl text-headline-xl-mobile md:text-headline-xl text-ink mb-8">Credentials</h1>
+        </section>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-gutter lg:gap-16">
+          <section className="lg:col-span-7 xl:col-span-8 flex flex-col gap-6">
+            <div className="flex items-center justify-between"><h2 className="font-headline-md text-headline-md text-ink">Shared with me</h2><span className="font-label-caps text-label-caps text-on-surface-variant">{sharedInboxItems.length} ITEMS</span></div>
+            {sharedInboxLoading && <p className="text-on-surface-variant">Loading shared items...</p>}
+            {sharedInboxError && <p className="border border-error bg-error-container p-4 text-on-error-container">{sharedInboxError}</p>}
+            {!sharedInboxLoading && sharedInboxItems.length === 0 && <p className="border border-taupe bg-surface-container-low p-6 text-on-surface-variant">No shared credentials yet.</p>}
+            {sharedInboxItems.map((item) => {
+              const openedShare = openedShares[item.share_id]
+              return <article key={item.share_id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 p-6 bg-surface-container-low border border-ink">
+                <div><h3 className="font-body-lg text-body-lg text-ink">{openedShare?.site ?? 'Unavailable'}</h3><p className="text-on-surface-variant">{openedShare?.username ?? 'Unavailable'}</p><p className="font-mono text-sm break-all text-on-surface-variant">{openedShare?.password ?? 'Unavailable'}</p></div>
+                <button type="button" className="vault-btn-secondary px-5 py-2 disabled:opacity-50" onClick={() => handleDeleteSharedItem(item.share_id)} disabled={deletingShareId === item.share_id}>{deletingShareId === item.share_id ? 'Deleting...' : 'Delete'}</button>
+              </article>
+            })}
+            {openShareError && <p className="border border-error bg-error-container p-4 text-on-error-container">{openShareError}</p>}
+            {deleteShareError && <p className="border border-error bg-error-container p-4 text-on-error-container">{deleteShareError}</p>}
+          </section>
+
+          <aside className="lg:col-span-5 xl:col-span-4 h-fit mt-12 lg:mt-0 bg-white p-8 border border-ink shadow-[8px_8px_0_0_#190922]">
+            <h2 className="font-headline-md text-headline-md text-ink mb-4">Share Access</h2>
+            <p className="text-on-surface-variant mb-8">Securely grant access to a credential.</p>
+            <button type="button" className="shine-button w-full px-4 py-3 mb-8 disabled:opacity-50" onClick={handleSetupSharingKeys} disabled={sharingSetupLoading}>{sharingSetupLoading ? 'Generating...' : 'Generate Sharing Keys'}</button>
+            {sharingSetupError && <p className="mb-4 border border-error bg-error-container p-3 text-on-error-container">{sharingSetupError}</p>}
+            {sharingSetupMessage && <p className="mb-4 text-on-surface-variant">{sharingSetupMessage}</p>}
+            <div className="flex flex-col gap-8">
+              <div><label className="font-label-caps text-label-caps text-on-surface-variant uppercase mb-2 block" htmlFor="share-target">Select Credential</label><select id="share-target" value={shareTargetId ?? ''} onChange={(event) => setShareTargetId(event.target.value || null)} className="input-line w-full py-2 bg-transparent text-ink"><option value="">Select a credential</option>{orderedEntries.map((entry) => <option key={entry.id} value={entry.id}>{entry.site} / {entry.username}</option>)}</select></div>
+              <div><label className="font-label-caps text-label-caps text-on-surface-variant uppercase mb-2 block" htmlFor="share-recipient-email">Recipient Email</label><input id="share-recipient-email" type="email" value={shareRecipientEmail} onChange={(event) => setShareRecipientEmail(event.target.value)} className="input-line w-full py-2 bg-transparent text-ink" placeholder="colleague@example.com" /></div>
+              <button type="button" className="shine-button w-full py-4 disabled:opacity-50" onClick={handleShareSelectedEntry} disabled={shareLoading || !selectedShareEntry}>{shareLoading ? 'Sharing...' : 'Share Credential'}</button>
+              {shareTargetId && <button type="button" className="text-on-surface-variant hover:text-pink" onClick={() => setShareTargetId(null)}>Clear selection</button>}
+              {shareError && <p className="border border-error bg-error-container p-3 text-on-error-container">{shareError}</p>}
+              {shareStatus && <p className="border border-primary bg-mint/30 p-3 text-ink">{shareStatus}</p>}
+            </div>
+          </aside>
         </div>
-
-        <section className="mb-10 border border-surface-dim bg-surface-container-lowest p-6 rounded-lg shadow-sm">
-          <div className="flex items-center justify-between gap-3 mb-4">
-            <h3 className="font-headline-md text-headline-md text-ink">Shared with me</h3>
-            <span className="text-sm uppercase tracking-[0.14em] text-on-surface-variant font-bold">{sharedInboxItems.length} item{sharedInboxItems.length === 1 ? '' : 's'}</span>
-          </div>
-
-          {sharedInboxLoading && <p className="text-base text-on-surface-variant">Loading shared items...</p>}
-          {sharedInboxError && <div className="p-3 rounded-md border border-red-200 bg-red-50 text-red-800 text-base">{sharedInboxError}</div>}
-
-          {!sharedInboxLoading && sharedInboxItems.length === 0 && (
-            <p className="text-base text-on-surface-variant">No shared credentials yet.</p>
-          )}
-
-          {!sharedInboxLoading && sharedInboxItems.length > 0 && (
-            <div className="space-y-3">
-              {sharedInboxItems.map((item) => {
-                const openedShare = openedShares[item.share_id]
-
-                return (
-                  <div key={item.share_id} className="rounded-md border border-surface-dim bg-white p-4">
-                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                      <div className="rounded-md bg-surface-container-lowest p-4 space-y-3 flex-1 w-full">
-                        <p className="text-lg font-bold text-ink">Site: {openedShare?.site ?? 'Unavailable'}</p>
-                        <p className="text-base text-on-surface-variant">Username: {openedShare?.username ?? 'Unavailable'}</p>
-                        <p className="text-base text-on-surface-variant break-all">Password: {openedShare?.password ?? 'Unavailable'}</p>
-                      </div>
-                      <button
-                        type="button"
-                        className="vault-btn-secondary px-4 py-2 text-base disabled:opacity-50 disabled:cursor-not-allowed self-end md:self-center"
-                        onClick={() => handleDeleteSharedItem(item.share_id)}
-                        disabled={deletingShareId === item.share_id}
-                      >
-                        {deletingShareId === item.share_id ? 'Deleting...' : 'Delete'}
-                      </button>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-
-          {openShareError && <div className="mt-4 p-3 rounded-md border border-red-200 bg-red-50 text-red-800 text-base">{openShareError}</div>}
-          {deleteShareError && <div className="mt-4 p-3 rounded-md border border-red-200 bg-red-50 text-red-800 text-base">{deleteShareError}</div>}
-        </section>
-
-        <section className="border border-surface-dim bg-surface-container-lowest p-6 rounded-lg shadow-sm">
-          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between mb-4">
-            <div className="max-w-2xl">
-              <h3 className="font-headline-md text-headline-md text-ink">Share Credentials</h3>
-            </div>
-            <button
-              type="button"
-              className="vault-btn-secondary px-4 py-2 font-body-md whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
-              onClick={handleSetupSharingKeys}
-              disabled={sharingSetupLoading}
-            >
-              {sharingSetupLoading ? 'Generating...' : 'Generate sharing keys'}
-            </button>
-          </div>
-
-          {sharingSetupError && <div className="mb-4 p-3 rounded-md border border-red-200 bg-red-50 text-red-800 text-sm">{sharingSetupError}</div>}
-          {sharingSetupMessage && <div className="mb-4 p-3 rounded-md border border-green-200 bg-green-50 text-green-800 text-sm">{sharingSetupMessage}</div>}
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block mb-2 text-sm font-bold text-ink" htmlFor="share-recipient-email">Recipient email</label>
-              <input
-                id="share-recipient-email"
-                type="email"
-                value={shareRecipientEmail}
-                onChange={(event) => setShareRecipientEmail(event.target.value)}
-                className="input-line w-full py-2"
-                placeholder="recipient@example.com"
-              />
-            </div>
-          </div>
-
-          <div className="mt-6">
-            <p className="text-sm font-bold text-ink mb-3">Select credential</p>
-            <div className="max-h-72 overflow-auto border border-surface-dim rounded-md bg-white divide-y divide-surface-dim">
-              {orderedEntries.length === 0 && (
-                <div className="px-4 py-6 text-sm text-on-surface-variant">No credentials available to share.</div>
-              )}
-              {orderedEntries.map((entry) => (
-                <button
-                  key={entry.id}
-                  type="button"
-                  className={`w-full text-left px-4 py-3 transition-colors ${shareTargetId === entry.id ? 'bg-mint/25' : 'hover:bg-surface-container-low'}`}
-                  onClick={() => setShareTargetId(entry.id)}
-                >
-                  <p className="font-bold text-ink">{entry.site}</p>
-                  <p className="text-sm text-on-surface-variant">{entry.username}</p>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-4 flex flex-wrap gap-3 items-center">
-            <button
-              type="button"
-              className="vault-btn-primary px-4 py-2 font-body-md font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-              onClick={handleShareSelectedEntry}
-              disabled={shareLoading || !selectedShareEntry}
-            >
-              {shareLoading ? 'Sharing...' : 'Share selected credential'}
-            </button>
-            {shareTargetId && (
-              <button
-                type="button"
-                className="vault-btn-secondary px-4 py-2 font-body-md"
-                onClick={() => setShareTargetId(null)}
-              >
-                Clear selection
-              </button>
-            )}
-            <span className="text-sm text-on-surface-variant">
-              {selectedShareEntry ? `Selected: ${selectedShareEntry.site} / ${selectedShareEntry.username}` : 'No credential selected'}
-            </span>
-          </div>
-
-          {shareError && <div className="mt-4 p-3 rounded-md border border-red-200 bg-red-50 text-red-800 text-sm">{shareError}</div>}
-          {shareStatus && <div className="mt-4 p-3 rounded-md border border-green-200 bg-green-50 text-green-800 text-sm">{shareStatus}</div>}
-        </section>
       </main>
     </div>
   )
