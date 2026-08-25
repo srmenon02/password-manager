@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=True, extra="ignore")
 
-    PORT: int = 5001
+    PORT: int = 8000
     ENVIRONMENT: str = "development"
     DATABASE_URL: str
     JWT_SECRET: str
