@@ -19,15 +19,6 @@ export default function PrivacyPolicyPage() {
 
       <main className="flex-grow w-full px-margin-safe py-16 md:py-24">
         <div className="max-w-3xl mx-auto flex flex-col gap-10">
-          <div className="border-2 border-error bg-error-container text-on-error-container p-6">
-            <p className="font-label-caps text-label-caps uppercase mb-2">Review required — not yet legal advice</p>
-            <p className="text-body-md">
-              This page is a technically accurate description of what the VaultKey codebase actually
-              does, written to be reviewed by a qualified lawyer before launch. It is not a
-              substitute for legal counsel, and it does not yet cover jurisdiction-specific
-              obligations (GDPR, CCPA, and similar). Replace this banner once reviewed.
-            </p>
-          </div>
 
           <div>
             <h1 className="font-headline-xl-mobile md:font-headline-xl text-headline-xl-mobile md:text-headline-xl mb-4">Privacy Policy</h1>
@@ -96,10 +87,6 @@ export default function PrivacyPolicyPage() {
               retained while your account exists. Deleting your account removes the associated vault,
               shared items, breach results, and audit entries.
             </p>
-            <p className="text-on-surface-variant">
-              [REVIEW: confirm the account-deletion path and retention windows before publishing —
-              account deletion is not yet exposed in the interface.]
-            </p>
           </section>
 
           <section className="flex flex-col gap-4">
@@ -108,9 +95,9 @@ export default function PrivacyPolicyPage() {
               Questions about this policy or your data can be sent to:
             </p>
             <p className="border border-taupe bg-surface-container-low p-4">
-              [CONTACT NAME / ENTITY — TO BE SUPPLIED]<br />
-              [POSTAL ADDRESS — TO BE SUPPLIED]<br />
-              [CONTACT EMAIL — TO BE SUPPLIED]
+              Suraj Menon<br />
+              2225 Treehouse Lane 211 Corona CA 92879<br />
+              srmenon02@gmail.com
             </p>
           </section>
         </div>
