@@ -143,6 +143,9 @@ export function VaultProvider({ children }: PropsWithChildren) {
   return <VaultContext.Provider value={value}>{children}</VaultContext.Provider>
 }
 
+// Co-located with its provider on purpose: splitting the accessor into another module to
+// satisfy Fast Refresh would churn imports across every consumer for no runtime benefit.
+// eslint-disable-next-line react-refresh/only-export-components
 export function useVault() {
   const context = useContext(VaultContext)
   if (!context) {

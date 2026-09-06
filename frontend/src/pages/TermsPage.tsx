@@ -1,0 +1,114 @@
+import { Link } from 'react-router-dom'
+import { usePageMeta } from '@/hooks/usePageMeta'
+
+export default function TermsPage() {
+  usePageMeta(
+    'Terms of Service · VaultKey',
+    'The terms covering use of VaultKey, including the irreversible nature of master password loss.'
+  )
+
+  return (
+    <div className="bg-paper text-ink font-body-md min-h-screen flex flex-col">
+      <header className="w-full min-h-16 py-2 bg-paper flex flex-wrap gap-x-4 gap-y-2 justify-between items-center px-gutter max-w-full z-50 sticky top-0 border-b border-surface-dim">
+        <Link to="/" className="font-headline-md text-headline-md text-primary tracking-tighter hover:opacity-75 transition-opacity">VaultKey</Link>
+        <nav className="flex flex-wrap items-center gap-x-5 gap-y-1 md:gap-8">
+          <Link to="/login" className="text-on-surface-variant font-body-md hover:text-primary transition-colors duration-200">Login</Link>
+          <Link to="/privacy" className="text-on-surface-variant font-body-md hover:text-primary transition-colors duration-200">Privacy</Link>
+        </nav>
+      </header>
+
+      <main className="flex-grow w-full px-margin-safe py-16 md:py-24">
+        <div className="max-w-3xl mx-auto flex flex-col gap-10">
+          <div className="border-2 border-error bg-error-container text-on-error-container p-6">
+            <p className="font-label-caps text-label-caps uppercase mb-2">Review required — not yet legal advice</p>
+            <p className="text-body-md">
+              This page describes how VaultKey actually behaves and the obligations that follow from
+              its architecture. It has not been reviewed by a lawyer, and it omits
+              jurisdiction-specific terms such as governing law, liability caps, dispute resolution,
+              and consumer-protection provisions. Replace this banner once reviewed.
+            </p>
+          </div>
+
+          <div>
+            <h1 className="font-headline-xl-mobile md:font-headline-xl text-headline-xl-mobile md:text-headline-xl mb-4">Terms of Service</h1>
+            <p className="text-on-surface-variant">
+              By creating a VaultKey account you agree to the terms below. Please read the section on
+              master password loss carefully — it describes a limitation that cannot be undone.
+            </p>
+          </div>
+
+          <section className="flex flex-col gap-4">
+            <h2 className="font-headline-md text-headline-md border-b border-ink pb-3">Your master password cannot be recovered</h2>
+            <p className="text-on-surface-variant">
+              VaultKey encrypts your vault in your browser using a key derived from your master
+              password. That password is never transmitted to or stored by us in any recoverable
+              form. As a direct consequence, we cannot reset it, recover it, or decrypt your vault on
+              your behalf. If you forget your master password, the contents of your vault are
+              permanently unreadable. You are solely responsible for retaining it.
+            </p>
+          </section>
+
+          <section className="flex flex-col gap-4">
+            <h2 className="font-headline-md text-headline-md border-b border-ink pb-3">Your responsibilities</h2>
+            <ul className="flex flex-col gap-3 text-on-surface-variant">
+              <li>Choose a strong, unique master password and keep it confidential.</li>
+              <li>Keep the device and browser you use to access VaultKey secure, since decryption happens there.</li>
+              <li>Share vault items only with recipients you intend to share them with. A shared item can be revoked, but you should assume a recipient may have already read or copied its contents.</li>
+              <li>Use the service lawfully, and do not attempt to access other users' accounts or data.</li>
+            </ul>
+          </section>
+
+          <section className="flex flex-col gap-4">
+            <h2 className="font-headline-md text-headline-md border-b border-ink pb-3">Service provided as-is</h2>
+            <p className="text-on-surface-variant">
+              VaultKey is provided without warranty of any kind. While the service is built so that
+              we cannot read your vault contents, no software is free of defects, and you should
+              maintain your own backups of information you cannot afford to lose.
+            </p>
+            <p className="text-on-surface-variant">
+              [REVIEW: liability limitation, warranty disclaimer, indemnification, and governing law
+              clauses need to be drafted by counsel for your jurisdiction.]
+            </p>
+          </section>
+
+          <section className="flex flex-col gap-4">
+            <h2 className="font-headline-md text-headline-md border-b border-ink pb-3">Account termination</h2>
+            <p className="text-on-surface-variant">
+              You may stop using the service at any time. We may suspend accounts that are used
+              unlawfully or in a way that threatens the integrity of the service. On termination,
+              your encrypted vault and associated records are removed.
+            </p>
+            <p className="text-on-surface-variant">
+              [REVIEW: notice periods and the account-deletion mechanism are not yet implemented in
+              the product.]
+            </p>
+          </section>
+
+          <section className="flex flex-col gap-4">
+            <h2 className="font-headline-md text-headline-md border-b border-ink pb-3">Changes to these terms</h2>
+            <p className="text-on-surface-variant">
+              These terms may be updated as the service changes. Continued use after an update
+              constitutes acceptance of the revised terms.
+            </p>
+          </section>
+
+          <section className="flex flex-col gap-4">
+            <h2 className="font-headline-md text-headline-md border-b border-ink pb-3">Contact</h2>
+            <p className="border border-taupe bg-surface-container-low p-4">
+              [CONTACT NAME / ENTITY — TO BE SUPPLIED]<br />
+              [POSTAL ADDRESS — TO BE SUPPLIED]<br />
+              [CONTACT EMAIL — TO BE SUPPLIED]
+            </p>
+          </section>
+        </div>
+      </main>
+
+      <footer className="w-full border-t border-taupe px-gutter py-12">
+        <div className="max-w-3xl mx-auto flex flex-wrap gap-x-6 gap-y-2">
+          <Link to="/" className="text-on-surface-variant font-body-md hover:text-primary transition-colors duration-200">Home</Link>
+          <Link to="/privacy" className="text-on-surface-variant font-body-md hover:text-primary transition-colors duration-200">Privacy</Link>
+        </div>
+      </footer>
+    </div>
+  )
+}

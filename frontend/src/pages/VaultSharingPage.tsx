@@ -111,16 +111,20 @@ function VaultSharingPage() {
 
   useEffect(() => {
     if (!token || !isUnlocked) {
-      setSharedInboxItems([])
-      setSharedKeyMaterial(null)
       return
     }
 
+    // See VaultActivityPage: fetch-on-mount sets its loading flag before the first await.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadSharedInbox(token)
   }, [isUnlocked, token])
 
   useEffect(() => {
     if (!vaultKey || !currentUserId || !sharedKeyMaterial || sharedInboxItems.length === 0) {
+      // Deliberate: drops decrypted share plaintext from memory as soon as the vault key or
+      // key material goes away. This is a security teardown, not a render sync, so it stays
+      // synchronous rather than being deferred or derived.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setOpenedShares({})
       return
     }

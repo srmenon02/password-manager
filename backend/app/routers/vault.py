@@ -124,7 +124,6 @@ async def save_breach_results(
     results: list[BreachResultResponse] = []
 
     for result in request.results:
-        normalized_sha1 = result.password_sha1.upper()
         row = db.query(BreachResult).filter(
             BreachResult.user_id == current_user.id,
             BreachResult.entry_id == result.entry_id,
@@ -134,11 +133,9 @@ async def save_breach_results(
             row = BreachResult(
                 user_id=current_user.id,
                 entry_id=result.entry_id,
-                password_sha1=normalized_sha1,
             )
             db.add(row)
 
-        row.password_sha1 = normalized_sha1
         row.breached = bool(result.breached)
         row.last_seen_count = result.last_seen_count
         row.checked_at = datetime.now(timezone.utc)

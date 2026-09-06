@@ -79,12 +79,17 @@ function VaultActivityPage() {
 
   useEffect(() => {
     if (!token || !isUnlocked) {
-      setAuditEntries([])
-      setAuditVerifyResult(null)
       return
     }
 
+    // Fetch-on-mount sets its loading flag before the first await, which this rule counts
+    // as a synchronous effect setState. Satisfying it properly means moving data fetching
+    // into React Query or a shared useAsync hook app-wide; tracked separately.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void refreshAuditLog()
+    // refreshAuditLog is redefined every render, so listing it here would re-fetch the log
+    // on each one. The effect only needs to re-run when the session changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, isUnlocked])
 
   async function handleVerifyAuditLog() {

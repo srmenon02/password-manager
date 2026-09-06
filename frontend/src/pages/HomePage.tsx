@@ -69,6 +69,27 @@ function HomePage() {
           </div>
         </section>
       </main>
+
+      <footer className="w-full border-t border-taupe px-gutter py-12 pb-28 md:pb-12">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-4 md:gap-8 justify-between items-start md:items-center">
+          <p className="font-label-caps text-label-caps uppercase text-on-surface-variant">
+            VaultKey — encrypted in your browser
+          </p>
+          <nav className="flex flex-wrap gap-x-6 gap-y-2">
+            <Link to="/privacy" className="text-on-surface-variant font-body-md hover:text-primary transition-colors duration-200">Privacy</Link>
+            <Link to="/terms" className="text-on-surface-variant font-body-md hover:text-primary transition-colors duration-200">Terms</Link>
+          </nav>
+        </div>
+      </footer>
+
+      <div className="md:hidden fixed bottom-0 inset-x-0 z-50 border-t border-ink bg-paper px-gutter py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+        <button
+          className="vault-btn-primary w-full px-4 py-3 font-body-md text-sm uppercase tracking-wider"
+          onClick={() => navigate('/register')}
+        >
+          Create your vault
+        </button>
+      </div>
     </div>
   )
 }

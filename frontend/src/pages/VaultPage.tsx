@@ -63,8 +63,6 @@ export default function VaultPage() {
     if (!formState.password) {
       breachCheckControllerRef.current?.abort()
       breachCheckControllerRef.current = null
-      setPasswordBreached(false)
-      setCheckingBreach(false)
       return
     }
 
@@ -269,7 +267,7 @@ export default function VaultPage() {
             <h1 className="font-headline-xl text-headline-xl text-ink font-bold text-center">Secure Vault</h1>
           </div>
           <div className="w-full md:w-1/3 mx-auto flex items-center relative">
-            <span className="material-symbols-outlined absolute left-0 text-ink">search</span>
+            <span className="material-symbols-outlined absolute left-0 text-ink" aria-hidden="true">search</span>
             <input
               className="input-line w-full pl-8 py-2 font-body-md text-body-md placeholder:text-on-surface-variant text-ink"
               placeholder="Search logins..."
@@ -314,8 +312,10 @@ export default function VaultPage() {
               Generate
             </button>
           </div>
-          {checkingBreach && <p className="md:col-span-2 text-sm text-on-surface-variant">Checking password...</p>}
-          {!checkingBreach && passwordBreached && (
+          {formState.password && checkingBreach && (
+            <p className="md:col-span-2 text-sm text-on-surface-variant">Checking password...</p>
+          )}
+          {formState.password && !checkingBreach && passwordBreached && (
             <p className="md:col-span-2 text-sm text-red-600">This password has appeared in a known data breach.</p>
           )}
           <input
@@ -377,7 +377,7 @@ export default function VaultPage() {
                       onClick={() => handleCopyPassword(entry.password)}
                       aria-label={`Copy password for ${entry.site}`}
                     >
-                      <span className="material-symbols-outlined text-ink">content_copy</span>
+                      <span className="material-symbols-outlined text-ink" aria-hidden="true">content_copy</span>
                     </button>
                     <button className="vault-btn-secondary px-3 py-1" onClick={() => handleEditStart(entry.id)} aria-label={`Edit ${entry.site}`}>
                       Edit

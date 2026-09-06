@@ -131,7 +131,7 @@ export default function RegisterPage() {
           </div>
         </div>
 
-        <div className="w-full flex items-center p-margin-safe lg:p-[120px] bg-paper lg:w-1/2">
+        <div className="w-full flex items-center p-margin-safe pt-24 lg:p-[120px] bg-paper lg:w-1/2">
           <div className="w-full max-w-md ml-auto mr-auto lg:ml-0 lg:mr-auto">
             <div className="mb-12">
               <h2 className="font-headline-md text-headline-md font-bold text-ink mb-2">Create Account</h2>

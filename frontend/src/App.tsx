@@ -7,6 +7,8 @@ import VaultSharingPage from './pages/VaultSharingPage'
 import VaultActivityPage from './pages/VaultActivityPage'
 import VaultBreachPage from './pages/VaultBreachPage'
 import GeneratorPage from './pages/GeneratorPage'
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage'
+import TermsPage from './pages/TermsPage'
 import NotFoundPage from './pages/NotFoundPage'
 import { VaultProvider } from '@/context/VaultContext'
 
@@ -23,6 +25,8 @@ function App() {
           <Route path="/vault/activity" element={<VaultActivityPage />} />
           <Route path="/vault/breach" element={<VaultBreachPage />} />
           <Route path="/generator" element={<GeneratorPage />} />
+          <Route path="/privacy" element={<PrivacyPolicyPage />} />
+          <Route path="/terms" element={<TermsPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </BrowserRouter>

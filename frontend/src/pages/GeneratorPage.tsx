@@ -60,6 +60,7 @@ export default function GeneratorPage() {
   const [useNumbers, setUseNumbers] = useState(true)
   const [useSymbols, setUseSymbols] = useState(true)
   const [seed, setSeed] = useState(0)
+  const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'error'>('idle')
 
   function handleLogout() {
     localStorage.clear()
@@ -69,18 +70,30 @@ export default function GeneratorPage() {
 
   const password = useMemo(
     () => generatePassword(length, useUpper, useLower, useNumbers, useSymbols),
+    // `seed` is not read inside the callback but is required: generatePassword is
+    // non-deterministic, so bumping it is what forces a fresh password on Regenerate.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [length, useUpper, useLower, useNumbers, useSymbols, seed]
   )
 
   function regenerate() {
     setSeed((s) => s + 1)
+    setCopyStatus('idle')
   }
 
   async function copyPassword() {
     if (!password) {
       return
     }
-    await navigator.clipboard.writeText(password)
+
+    try {
+      await navigator.clipboard.writeText(password)
+      setCopyStatus('copied')
+    } catch {
+      setCopyStatus('error')
+    }
+
+    setTimeout(() => setCopyStatus('idle'), 2000)
   }
 
   return (
@@ -104,9 +117,13 @@ export default function GeneratorPage() {
           <h1 className="font-headline-xl text-headline-xl-mobile md:text-headline-xl text-ink mb-6">Create something unguessable.</h1>
           <div className="bg-mint border-2 border-ink p-8 relative group hover:bg-sage transition-colors duration-500 ease-in-out cursor-pointer shadow-[8px_8px_0px_0px_rgba(25,9,34,1)]">
             <div className="flex justify-between items-start mb-16">
-              <button aria-label="Copy Password" className="text-ink hover:text-primary transition-colors" onClick={copyPassword}>
-                <span className="material-symbols-outlined">content_copy</span>
+              <button aria-label="Copy password" className="text-ink hover:text-primary transition-colors" onClick={copyPassword}>
+                <span className="material-symbols-outlined" aria-hidden="true">content_copy</span>
               </button>
+              <span role="status" aria-live="polite" className="font-label-caps text-label-caps uppercase text-ink">
+                {copyStatus === 'copied' && 'Copied'}
+                {copyStatus === 'error' && 'Copy failed'}
+              </span>
             </div>
             <div className="font-headline-md text-headline-md text-ink break-all tracking-widest font-bold" id="password-display">
               {password || 'Select at least one rule'}

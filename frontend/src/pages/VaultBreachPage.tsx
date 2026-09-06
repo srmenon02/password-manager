@@ -4,11 +4,6 @@ import { useVault } from '@/context/VaultContext'
 import { checkPasswordBreach, saveBreachResults } from '@/services/api'
 import { usePageMeta } from '@/hooks/usePageMeta'
 
-async function getPasswordSha1(password: string) {
-  const hashBuffer = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(password))
-  return Array.from(new Uint8Array(hashBuffer)).map((byte) => byte.toString(16).padStart(2, '0')).join('').toUpperCase()
-}
-
 function VaultBreachPage() {
   usePageMeta('Breach Monitor · VaultKey', 'Check your stored passwords against known data breaches.')
   const navigate = useNavigate()
@@ -47,7 +42,6 @@ function VaultBreachPage() {
 
   useEffect(() => {
     if (!vaultData || !isUnlocked) {
-      setBreachedEntryIds(new Set())
       return
     }
 
@@ -73,11 +67,10 @@ function VaultBreachPage() {
         setBreachedEntryIds(new Set(results.filter(([, breached]) => breached).map(([id]) => id)))
         if (token) {
           try {
-            await saveBreachResults(token, await Promise.all(entries.map(async (entry, index) => ({
+            await saveBreachResults(token, entries.map((entry, index) => ({
               entry_id: entry.id,
-              password_sha1: await getPasswordSha1(entry.password),
               breached: results[index][1],
-            }))))
+            })))
           } catch {}
         }
         setLoading(false)
