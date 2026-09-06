@@ -1,17 +1,29 @@
 import { Link, useNavigate } from 'react-router-dom'
+import { usePageMeta } from '@/hooks/usePageMeta'
 
 function HomePage() {
   const navigate = useNavigate()
+  usePageMeta(
+    'VaultKey - Zero-Knowledge Password Manager',
+    'Store and share your passwords with client-side, zero-knowledge encryption. Your master password never leaves your device.'
+  )
 
   return (
     <div className="bg-paper text-on-surface font-body-md min-h-screen flex flex-col">
-      <header className="w-full h-16 bg-paper flex justify-between items-center px-gutter max-w-full z-50 relative">
+      <header className="w-full min-h-16 py-2 bg-paper flex flex-wrap gap-x-4 gap-y-2 justify-between items-center px-gutter max-w-full z-50 relative">
         <div className="font-headline-md text-headline-md text-primary tracking-tighter">VaultKey</div>
-        <nav className="hidden md:flex items-center gap-8">
-          <Link to="/login" className="text-on-surface-variant font-body-md cursor-pointer hover:text-pink transition-colors duration-200">Login</Link>
-          <Link to="/generator" className="text-on-surface-variant font-body-md cursor-pointer hover:text-pink transition-colors duration-200">Generator</Link>
-          <Link to="/register" className="text-on-surface-variant font-body-md cursor-pointer hover:text-pink transition-colors duration-200">Create Account</Link>
-        </nav>
+        <div className="flex items-center gap-6 md:gap-8">
+          <nav className="flex flex-wrap items-center gap-x-5 gap-y-1 md:gap-8">
+            <Link to="/login" className="text-on-surface-variant font-body-md cursor-pointer hover:text-primary transition-colors duration-200">Login</Link>
+            <Link to="/generator" className="text-on-surface-variant font-body-md cursor-pointer hover:text-primary transition-colors duration-200">Generator</Link>
+          </nav>
+          <button
+            className="vault-btn-primary px-4 py-2 font-body-md text-sm uppercase tracking-wider"
+            onClick={() => navigate('/register')}
+          >
+            Get Started
+          </button>
+        </div>
       </header>
 
       <main className="flex-grow">

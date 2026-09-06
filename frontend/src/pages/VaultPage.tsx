@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useVault } from '@/context/VaultContext'
 import type { VaultEntryInput } from '@/models/vault'
 import { checkPasswordBreach } from '@/services/api'
+import { usePageMeta } from '@/hooks/usePageMeta'
 
 const UPPER = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 const LOWER = 'abcdefghijklmnopqrstuvwxyz'
@@ -28,6 +29,7 @@ const defaultFormState: VaultEntryInput = {
 }
 
 export default function VaultPage() {
+  usePageMeta('Your Vault · VaultKey', 'View, add, and manage your encrypted credentials.')
   const navigate = useNavigate()
   const {
     vaultData,
@@ -247,17 +249,17 @@ export default function VaultPage() {
 
   return (
     <div className="min-h-screen flex flex-col font-body-md text-body-md bg-paper text-ink">
-      <header className="w-full h-16 bg-paper flex justify-between items-center px-gutter max-w-full z-50 sticky top-0 border-b border-surface-dim">
+      <header className="w-full min-h-16 py-2 bg-paper flex flex-wrap gap-x-4 gap-y-2 justify-between items-center px-gutter max-w-full z-50 sticky top-0 border-b border-surface-dim">
         <Link to="/" className="font-headline-md text-headline-md text-primary tracking-tighter hover:opacity-75 transition-opacity">VaultKey</Link>
-        <nav className="hidden md:flex gap-8 items-center font-body-md text-body-md">
+        <nav className="flex flex-wrap gap-x-5 gap-y-1 md:gap-8 items-center font-body-md text-body-md">
           <span className="text-ink border-b border-ink">Vault</span>
-          <button onClick={() => navigate('/generator')} className="text-on-surface-variant font-body-md cursor-pointer hover:text-pink transition-colors duration-200">Generator</button>
-          <Link to="/vault/sharing" className="text-on-surface-variant hover:text-pink transition-colors duration-200">Sharing</Link>
-          <Link to="/vault/activity" className="text-on-surface-variant hover:text-pink transition-colors duration-200">Activity</Link>
-          <Link to="/vault/breach" className="text-on-surface-variant hover:text-pink transition-colors duration-200">Breach</Link>
+          <button onClick={() => navigate('/generator')} className="text-on-surface-variant font-body-md cursor-pointer hover:text-primary transition-colors duration-200">Generator</button>
+          <Link to="/vault/sharing" className="text-on-surface-variant hover:text-primary transition-colors duration-200">Sharing</Link>
+          <Link to="/vault/activity" className="text-on-surface-variant hover:text-primary transition-colors duration-200">Activity</Link>
+          <Link to="/vault/breach" className="text-on-surface-variant hover:text-primary transition-colors duration-200">Breach</Link>
         </nav>
         <div className="flex gap-4 items-center">
-          <Link to="/" className="text-on-surface-variant hover:text-pink transition-colors duration-200">Log Out</Link>
+          <button type="button" onClick={handleLogout} className="text-on-surface-variant hover:text-primary transition-colors duration-200">Log Out</button>
         </div>
       </header>
 
@@ -278,8 +280,8 @@ export default function VaultPage() {
           </div>
         </div>
 
-        {error && <div className="mb-4 p-3 rounded-md border border-red-200 bg-red-50 text-red-800 text-sm">{error}</div>}
-        {saveMessage && <div className="mb-4 p-3 rounded-md border border-green-200 bg-green-50 text-green-800 text-sm">{saveMessage}</div>}
+        {error && <div role="alert" className="mb-4 p-3 rounded-md border border-red-200 bg-red-50 text-red-800 text-sm">{error}</div>}
+        {saveMessage && <div role="status" className="mb-4 p-3 rounded-md border border-green-200 bg-green-50 text-green-800 text-sm">{saveMessage}</div>}
 
         <form id="vault-entry-form" onSubmit={handleSubmitEntry} className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10 bg-taupe border-2 border-ink p-6">
           <input
@@ -373,17 +375,17 @@ export default function VaultPage() {
                     <button
                       className="w-10 h-10 border border-ink flex items-center justify-center hover:bg-mint hover:border-mint transition-colors bg-white"
                       onClick={() => handleCopyPassword(entry.password)}
-                      aria-label="Copy Password"
+                      aria-label={`Copy password for ${entry.site}`}
                     >
                       <span className="material-symbols-outlined text-ink">content_copy</span>
                     </button>
-                    <button className="vault-btn-secondary px-3 py-1" onClick={() => handleEditStart(entry.id)}>
+                    <button className="vault-btn-secondary px-3 py-1" onClick={() => handleEditStart(entry.id)} aria-label={`Edit ${entry.site}`}>
                       Edit
                     </button>
-                    <button className="vault-btn-secondary px-3 py-1" onClick={() => navigate('/vault/sharing')}>
+                    <button className="vault-btn-secondary px-3 py-1" onClick={() => navigate('/vault/sharing')} aria-label={`Share ${entry.site}`}>
                       Share
                     </button>
-                    <button className="vault-btn-secondary px-3 py-1" onClick={() => removeEntry(entry.id)}>
+                    <button className="vault-btn-secondary px-3 py-1" onClick={() => removeEntry(entry.id)} aria-label={`Delete ${entry.site}`}>
                       Delete
                     </button>
                   </div>

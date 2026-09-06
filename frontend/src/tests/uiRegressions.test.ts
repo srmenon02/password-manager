@@ -1,0 +1,74 @@
+import { describe, expect, it } from 'vitest'
+import { readFileSync, readdirSync } from 'node:fs'
+import { join } from 'node:path'
+
+const PAGES_DIR = join(__dirname, '..', 'pages')
+const pages = readdirSync(PAGES_DIR).filter((f) => f.endsWith('.tsx'))
+const source = (f: string) => readFileSync(join(PAGES_DIR, f), 'utf8')
+const css = readFileSync(join(__dirname, '..', 'index.css'), 'utf8')
+const tailwindConfig = readFileSync(join(__dirname, '..', '..', 'tailwind.config.js'), 'utf8')
+
+const definesToken = (token: string) =>
+  new RegExp(`(^|\\s)'?${token}'?\\s*:\\s*'#`, 'm').test(tailwindConfig)
+
+describe('design token coverage', () => {
+  it('defines every color token the pages reference', () => {
+    const referenced = new Set<string>()
+    for (const f of pages) {
+      for (const m of source(f).matchAll(/\b(?:bg|text|border|accent|outline|ring)-([a-z][a-z0-9-]*)\b/g)) {
+        referenced.add(m[1])
+      }
+    }
+    // `border-error` / `bg-error-container` silently emitted no CSS because the
+    // tokens were never defined, leaving error banners unstyled.
+    const missing = ['error', 'error-container'].filter((t) => !definesToken(t))
+    expect(missing).toEqual([])
+    expect(referenced.has('error')).toBe(true)
+  })
+})
+
+describe('focus visibility', () => {
+  it('never strips a focus outline without a visible replacement', () => {
+    for (const f of pages) {
+      // Tailwind's outline-none is a *transparent* 2px outline, so on its own
+      // it leaves keyboard users with no indicator at all.
+      const stripped = source(f).match(/\b(?:focus:)?outline-none\b/g) ?? []
+      expect(stripped, `${f} strips focus outline`).toEqual([])
+    }
+    expect(css).not.toMatch(/:focus\s*{[^}]*outline:\s*none/)
+  })
+
+  it('keeps border-b visible on underlined inputs', () => {
+    for (const f of pages) {
+      // border-none sets border-style:none and cancels border-b-2 entirely.
+      const broken = /border-none[^"]*border-b-\d/.test(source(f))
+      expect(broken, `${f} cancels its own bottom border`).toBe(false)
+    }
+  })
+})
+
+describe('navigation', () => {
+  it('keeps nav reachable below the md breakpoint', () => {
+    for (const f of pages) {
+      expect(/<nav className="hidden md:flex/.test(source(f)), `${f} hides nav on mobile`).toBe(false)
+    }
+  })
+
+  it('clears the session when logging out', () => {
+    for (const f of pages) {
+      const s = source(f)
+      if (!s.includes('function handleLogout')) continue
+      expect(s, `${f} defines handleLogout but never calls it`).toContain('onClick={handleLogout}')
+      expect(/<Link to="\/"[^>]*>Log Out<\/Link>/.test(s), `${f} logs out via a bare link`).toBe(false)
+    }
+  })
+})
+
+describe('motion', () => {
+  it('honours prefers-reduced-motion for the infinite animations', () => {
+    expect(css).toContain('prefers-reduced-motion')
+    for (const cls of ['login-button-bg', 'register-button-bg', 'generator-button-bg']) {
+      expect(css.split('prefers-reduced-motion')[1]).toContain(cls)
+    }
+  })
+})

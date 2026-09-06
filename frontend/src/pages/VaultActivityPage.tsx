@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import type { AuditLogEntry, AuditLogVerifyResponse } from '@shared/types'
 import { getAuditLog, verifyAuditLog } from '@/services/api'
 import { useVault } from '@/context/VaultContext'
+import { usePageMeta } from '@/hooks/usePageMeta'
 
 function formatAuditAction(action: string) {
   return action
@@ -36,6 +37,7 @@ function getDisplayMetadataEntries(metadata: Record<string, unknown>) {
 }
 
 function VaultActivityPage() {
+  usePageMeta('Activity · VaultKey', 'Review your hash-chained audit log and verify its integrity.')
   const navigate = useNavigate()
   const { token, isUnlocked, clearVaultSession } = useVault()
 
@@ -122,17 +124,17 @@ function VaultActivityPage() {
 
   return (
     <div className="min-h-screen flex flex-col font-body-md text-body-md bg-paper text-ink">
-      <header className="w-full h-16 bg-paper flex justify-between items-center px-gutter max-w-full z-50 sticky top-0 border-b border-surface-dim">
+      <header className="w-full min-h-16 py-2 bg-paper flex flex-wrap gap-x-4 gap-y-2 justify-between items-center px-gutter max-w-full z-50 sticky top-0 border-b border-surface-dim">
         <Link to="/" className="font-headline-md text-headline-md text-primary tracking-tighter hover:opacity-75 transition-opacity">VaultKey</Link>
-        <nav className="hidden md:flex gap-8 items-center font-body-md text-body-md">
-          <Link to="/vault" className="text-on-surface-variant hover:text-pink transition-colors duration-200">Vault</Link>
-          <button onClick={() => navigate('/generator')} className="text-on-surface-variant font-body-md cursor-pointer hover:text-pink transition-colors duration-200">Generator</button>
-          <Link to="/vault/sharing" className="text-on-surface-variant hover:text-pink transition-colors duration-200">Sharing</Link>
+        <nav className="flex flex-wrap gap-x-5 gap-y-1 md:gap-8 items-center font-body-md text-body-md">
+          <Link to="/vault" className="text-on-surface-variant hover:text-primary transition-colors duration-200">Vault</Link>
+          <button onClick={() => navigate('/generator')} className="text-on-surface-variant font-body-md cursor-pointer hover:text-primary transition-colors duration-200">Generator</button>
+          <Link to="/vault/sharing" className="text-on-surface-variant hover:text-primary transition-colors duration-200">Sharing</Link>
           <span className="text-ink border-b border-ink">Activity</span>
-          <Link to="/vault/breach" className="text-on-surface-variant hover:text-pink transition-colors duration-200">Breach</Link>
+          <Link to="/vault/breach" className="text-on-surface-variant hover:text-primary transition-colors duration-200">Breach</Link>
         </nav>
         <div className="flex gap-4 items-center">
-          <Link to="/" className="text-on-surface-variant hover:text-pink transition-colors duration-200">Log Out</Link>
+          <button type="button" onClick={handleLogout} className="text-on-surface-variant hover:text-primary transition-colors duration-200">Log Out</button>
         </div>
       </header>
 

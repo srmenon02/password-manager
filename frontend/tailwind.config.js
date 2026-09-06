@@ -36,6 +36,8 @@ export default {
         'on-primary-container': '#3d7160',
         'on-secondary': '#ffffff',
         'on-secondary-container': '#7a5b5e',
+        error: '#ba1a1a',
+        'error-container': '#ffdad6',
         'on-error': '#ffffff',
         'on-error-container': '#93000a',
       },

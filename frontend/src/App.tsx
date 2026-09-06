@@ -7,6 +7,7 @@ import VaultSharingPage from './pages/VaultSharingPage'
 import VaultActivityPage from './pages/VaultActivityPage'
 import VaultBreachPage from './pages/VaultBreachPage'
 import GeneratorPage from './pages/GeneratorPage'
+import NotFoundPage from './pages/NotFoundPage'
 import { VaultProvider } from '@/context/VaultContext'
 
 function App() {
@@ -22,6 +23,7 @@ function App() {
           <Route path="/vault/activity" element={<VaultActivityPage />} />
           <Route path="/vault/breach" element={<VaultBreachPage />} />
           <Route path="/generator" element={<GeneratorPage />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </BrowserRouter>
     </VaultProvider>
