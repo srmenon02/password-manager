@@ -17,12 +17,12 @@ srp==1.0.22
 # Session storage
 redis==8.0.1
 
-# Task scheduling
-apscheduler==3.11.3
-
 # CORS and validation
 pydantic==2.5.3
 pydantic-settings==2.1.0
+# Required by pydantic's EmailStr, which schemas.py uses. Without it the app fails to
+# import, not just the tests.
+email-validator==2.3.0
 
 # Testing
 pytest==7.4.4
