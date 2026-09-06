@@ -64,20 +64,18 @@ export default function PrivacyPolicyPage() {
           </section>
 
           <section className="flex flex-col gap-4">
-            <h2 className="font-headline-md text-headline-md border-b border-ink pb-3">Breach checking, and a known limitation</h2>
+            <h2 className="font-headline-md text-headline-md border-b border-ink pb-3">Breach checking</h2>
             <p className="text-on-surface-variant">
               When you check whether a password has appeared in a known breach, your browser computes
               a SHA-1 hash of that password and sends only the first five characters to Have I Been
-              Pwned. That service never receives the full hash or the password itself.
+              Pwned. That service never receives the full hash or the password itself, and the
+              comparison that determines the result happens entirely in your browser.
             </p>
             <p className="text-on-surface-variant">
-              However, when breach-scan results are saved so they can be displayed and re-checked
-              later, the current implementation sends the <span className="text-ink">complete</span>{' '}
-              SHA-1 hash of each stored password to the VaultKey server, where it is retained. An
-              unsalted SHA-1 hash is inexpensive to reverse for weak or common passwords. This means
-              that, for this specific feature, the server holds data that could reveal some stored
-              passwords if the database were compromised. This is a deviation from the zero-knowledge
-              guarantee described above and is documented here rather than omitted.
+              No password hash is ever sent to or stored on the VaultKey server. When breach-scan
+              results are saved so they can be shown later, only the vault entry's identifier and a
+              true/false verdict are recorded. Neither can be used to recover the password it refers
+              to.
             </p>
           </section>
 

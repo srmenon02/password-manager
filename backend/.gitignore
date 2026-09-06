@@ -31,5 +31,7 @@ htmlcov/
 *.sqlite3
 
 # Alembic
-alembic/versions/*.py
+# Migration scripts are source, not build output: a clone without them cannot construct
+# the database schema, and a schema change without its migration breaks existing
+# deployments. They stay tracked.
 !alembic/versions/.gitkeep
