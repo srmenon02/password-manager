@@ -101,9 +101,10 @@ body {
   border-radius: 0;
 }
 
-.input-line:focus {
-  outline: none;
-  border-bottom-color: #bcf4de;
+.input-line:focus-visible {
+  outline: 2px solid #336857;
+  outline-offset: 2px;
+  border-bottom-color: #336857;
   box-shadow: none;
 }
 
@@ -137,7 +138,7 @@ body {
 }
 
 .shine-button:hover {
-  color: #fff8f4;
+  color: #190922;
 }
 
 @keyframes rotateShine {
@@ -164,4 +165,13 @@ body {
   cursor: pointer;
   border-radius: 4px;
   border: 2px solid #bcf4de;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-button-bg,
+  .register-button-bg,
+  .generator-button-bg,
+  .shine-button::before {
+    animation: none;
+  }
 }

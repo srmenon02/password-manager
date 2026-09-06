@@ -263,17 +263,13 @@ class VaultInDB(VaultBase):
 
 
 class BreachResultInput(BaseModel):
+    # Deliberately carries no password hash: an unsalted SHA-1 of a stored password is
+    # cheap to reverse, so accepting one here would let the server reconstruct vault
+    # secrets and break the zero-knowledge guarantee. Breach matching happens client-side
+    # against the HIBP range API; only the resulting verdict is persisted.
     entry_id: str
-    password_sha1: str = Field(..., min_length=40, max_length=40)
     breached: bool
     last_seen_count: Optional[int] = None
-
-    @field_validator("password_sha1")
-    @classmethod
-    def validate_sha1(cls, v: str) -> str:
-        if not all(c in "0123456789abcdefABCDEF" for c in v):
-            raise ValueError("password_sha1 must be a hex string")
-        return v.upper()
 
 
 class BreachResultsSaveRequest(BaseModel):

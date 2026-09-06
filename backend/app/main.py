@@ -1,6 +1,3 @@
-from contextlib import asynccontextmanager
-from datetime import datetime
-
 import sqlalchemy
 from fastapi import FastAPI, HTTPException
 from fastapi.encoders import jsonable_encoder
@@ -8,14 +5,8 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-try:
-    from apscheduler.schedulers.asyncio import AsyncIOScheduler
-except ModuleNotFoundError:  # pragma: no cover - optional in lightweight dev environments
-    AsyncIOScheduler = None
-
 from app.config import settings
 from app.database import engine, Base
-from app.services.breach_checker import check_and_update_breaches
 
 from app.routers import audit, auth, share, vault
 
@@ -63,33 +54,10 @@ def ensure_schema_compatibility() -> None:
 ensure_schema_compatibility()
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    if AsyncIOScheduler is None:
-        yield
-        return
-
-    scheduler = AsyncIOScheduler()
-    scheduler.add_job(
-        check_and_update_breaches,
-        "interval",
-        hours=24,
-        id="breach_recheck",
-        next_run_time=datetime.now()
-    )
-    scheduler.start()
-    try:
-        yield
-    finally:
-        if scheduler.running:
-            scheduler.shutdown(wait=False)
-
-
 app = FastAPI(
     title="VaultKey API",
     description="Zero-Knowledge Password Manager with Breach Intelligence",
     version="1.0.0",
-    lifespan=lifespan
 )
 
 

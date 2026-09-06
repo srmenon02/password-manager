@@ -49,7 +49,6 @@ setup/
 
 *docs/
 
-.github/
 *.md
 *.env
 frontend/stich*

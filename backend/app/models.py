@@ -97,7 +97,6 @@ class BreachResult(Base):
     id = Column(GUID(), primary_key=True, default=uuid.uuid4)
     user_id = Column(GUID(), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     entry_id = Column(String, nullable=False, index=True)
-    password_sha1 = Column(String(40), nullable=False, index=True)
     breached = Column(Boolean, nullable=False, default=False)
     checked_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
     last_seen_count = Column(Integer, nullable=True)

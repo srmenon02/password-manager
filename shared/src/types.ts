@@ -129,9 +129,11 @@ export interface SharedInboxItem {
   shared_at: string
 }
 
+// Carries no password hash by design: an unsalted SHA-1 of a stored password is cheap to
+// reverse, so sending one would let the server reconstruct vault secrets. Breach matching
+// happens client-side against the HIBP range API; only the verdict is sent.
 export interface BreachResultInput {
   entry_id: string
-  password_sha1: string
   breached: boolean
   last_seen_count?: number | null
 }

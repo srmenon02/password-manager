@@ -108,7 +108,6 @@ export interface SharedInboxItem {
 }
 export interface BreachResultInput {
     entry_id: string;
-    password_sha1: string;
     breached: boolean;
     last_seen_count?: number | null;
 }

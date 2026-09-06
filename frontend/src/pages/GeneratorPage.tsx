@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useVault } from '@/context/VaultContext'
+import { usePageMeta } from '@/hooks/usePageMeta'
 
 const UPPER = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 const LOWER = 'abcdefghijklmnopqrstuvwxyz'
@@ -49,6 +50,7 @@ function generatePassword(length: number, useUpper: boolean, useLower: boolean, 
 }
 
 export default function GeneratorPage() {
+  usePageMeta('Password Generator · VaultKey', 'Generate strong, random passwords instantly.')
   const navigate = useNavigate()
   const { clearVaultSession } = useVault()
   const isLoggedIn = Boolean(localStorage.getItem('vaultkey_token'))
@@ -58,6 +60,7 @@ export default function GeneratorPage() {
   const [useNumbers, setUseNumbers] = useState(true)
   const [useSymbols, setUseSymbols] = useState(true)
   const [seed, setSeed] = useState(0)
+  const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'error'>('idle')
 
   function handleLogout() {
     localStorage.clear()
@@ -67,33 +70,45 @@ export default function GeneratorPage() {
 
   const password = useMemo(
     () => generatePassword(length, useUpper, useLower, useNumbers, useSymbols),
+    // `seed` is not read inside the callback but is required: generatePassword is
+    // non-deterministic, so bumping it is what forces a fresh password on Regenerate.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [length, useUpper, useLower, useNumbers, useSymbols, seed]
   )
 
   function regenerate() {
     setSeed((s) => s + 1)
+    setCopyStatus('idle')
   }
 
   async function copyPassword() {
     if (!password) {
       return
     }
-    await navigator.clipboard.writeText(password)
+
+    try {
+      await navigator.clipboard.writeText(password)
+      setCopyStatus('copied')
+    } catch {
+      setCopyStatus('error')
+    }
+
+    setTimeout(() => setCopyStatus('idle'), 2000)
   }
 
   return (
     <div className="bg-paper text-on-surface font-body-md min-h-screen flex flex-col selection:bg-mint selection:text-ink">
-      <header className="w-full h-16 bg-paper flex justify-between items-center px-gutter max-w-full z-50 sticky top-0 border-b border-surface-dim">
+      <header className="w-full min-h-16 py-2 bg-paper flex flex-wrap gap-x-4 gap-y-2 justify-between items-center px-gutter max-w-full z-50 sticky top-0 border-b border-surface-dim">
         <Link to="/" className="font-headline-md text-headline-md text-primary tracking-tighter hover:opacity-75 transition-opacity">VaultKey</Link>
-        <nav className="hidden md:flex gap-8 items-center font-body-md text-body-md">
-          {isLoggedIn && <Link to="/vault" className="text-on-surface-variant hover:text-pink transition-colors duration-200">Vault</Link>}
+        <nav className="flex flex-wrap gap-x-5 gap-y-1 md:gap-8 items-center font-body-md text-body-md">
+          {isLoggedIn && <Link to="/vault" className="text-on-surface-variant hover:text-primary transition-colors duration-200">Vault</Link>}
           {isLoggedIn && <span className="text-ink border-b border-ink">Generator</span>}
-          {isLoggedIn && <Link to="/vault/sharing" className="text-on-surface-variant hover:text-pink transition-colors duration-200">Sharing</Link>}
-          {isLoggedIn && <Link to="/vault/activity" className="text-on-surface-variant hover:text-pink transition-colors duration-200">Activity</Link>}
-          {isLoggedIn && <Link to="/vault/breach" className="text-on-surface-variant hover:text-pink transition-colors duration-200">Breach</Link>}
+          {isLoggedIn && <Link to="/vault/sharing" className="text-on-surface-variant hover:text-primary transition-colors duration-200">Sharing</Link>}
+          {isLoggedIn && <Link to="/vault/activity" className="text-on-surface-variant hover:text-primary transition-colors duration-200">Activity</Link>}
+          {isLoggedIn && <Link to="/vault/breach" className="text-on-surface-variant hover:text-primary transition-colors duration-200">Breach</Link>}
         </nav>
         <div className="flex gap-4 items-center">
-          {isLoggedIn && <Link to="/" className="text-on-surface-variant hover:text-pink transition-colors duration-200">Log Out</Link>}
+          {isLoggedIn && <button type="button" onClick={handleLogout} className="text-on-surface-variant hover:text-primary transition-colors duration-200">Log Out</button>}
         </div>
       </header>
 
@@ -102,9 +117,13 @@ export default function GeneratorPage() {
           <h1 className="font-headline-xl text-headline-xl-mobile md:text-headline-xl text-ink mb-6">Create something unguessable.</h1>
           <div className="bg-mint border-2 border-ink p-8 relative group hover:bg-sage transition-colors duration-500 ease-in-out cursor-pointer shadow-[8px_8px_0px_0px_rgba(25,9,34,1)]">
             <div className="flex justify-between items-start mb-16">
-              <button aria-label="Copy Password" className="text-ink hover:text-pink transition-colors" onClick={copyPassword}>
-                <span className="material-symbols-outlined">content_copy</span>
+              <button aria-label="Copy password" className="text-ink hover:text-primary transition-colors" onClick={copyPassword}>
+                <span className="material-symbols-outlined" aria-hidden="true">content_copy</span>
               </button>
+              <span role="status" aria-live="polite" className="font-label-caps text-label-caps uppercase text-ink">
+                {copyStatus === 'copied' && 'Copied'}
+                {copyStatus === 'error' && 'Copy failed'}
+              </span>
             </div>
             <div className="font-headline-md text-headline-md text-ink break-all tracking-widest font-bold" id="password-display">
               {password || 'Select at least one rule'}
@@ -120,7 +139,7 @@ export default function GeneratorPage() {
                 <span className="font-body-lg text-body-lg text-ink font-bold" id="length-val">{length}</span>
               </div>
               <input
-                className="w-full h-2 bg-ink appearance-none outline-none custom-slider rounded-full"
+                className="w-full h-2 bg-ink appearance-none custom-slider rounded-full focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
                 id="length"
                 max={64}
                 min={8}
@@ -134,19 +153,19 @@ export default function GeneratorPage() {
             <div className="space-y-6">
               <label className="flex items-center justify-between group cursor-pointer">
                 <span className="font-body-md text-body-md text-ink group-hover:text-primary transition-colors font-bold">Uppercase</span>
-                <input checked={useUpper} className="w-8 h-8 border-2 border-ink bg-paper text-ink focus:ring-0 focus:ring-offset-0 checked:bg-mint cursor-pointer" type="checkbox" onChange={(event) => setUseUpper(event.target.checked)} />
+                <input checked={useUpper} className="w-8 h-8 accent-primary cursor-pointer" type="checkbox" onChange={(event) => setUseUpper(event.target.checked)} />
               </label>
               <label className="flex items-center justify-between group cursor-pointer">
                 <span className="font-body-md text-body-md text-ink group-hover:text-primary transition-colors font-bold">Lowercase</span>
-                <input checked={useLower} className="w-8 h-8 border-2 border-ink bg-paper text-ink focus:ring-0 focus:ring-offset-0 checked:bg-mint cursor-pointer" type="checkbox" onChange={(event) => setUseLower(event.target.checked)} />
+                <input checked={useLower} className="w-8 h-8 accent-primary cursor-pointer" type="checkbox" onChange={(event) => setUseLower(event.target.checked)} />
               </label>
               <label className="flex items-center justify-between group cursor-pointer">
                 <span className="font-body-md text-body-md text-ink group-hover:text-primary transition-colors font-bold">Numbers</span>
-                <input checked={useNumbers} className="w-8 h-8 border-2 border-ink bg-paper text-ink focus:ring-0 focus:ring-offset-0 checked:bg-mint cursor-pointer" type="checkbox" onChange={(event) => setUseNumbers(event.target.checked)} />
+                <input checked={useNumbers} className="w-8 h-8 accent-primary cursor-pointer" type="checkbox" onChange={(event) => setUseNumbers(event.target.checked)} />
               </label>
               <label className="flex items-center justify-between group cursor-pointer">
                 <span className="font-body-md text-body-md text-ink group-hover:text-primary transition-colors font-bold">Symbols</span>
-                <input checked={useSymbols} className="w-8 h-8 border-2 border-ink bg-paper text-ink focus:ring-0 focus:ring-offset-0 checked:bg-mint cursor-pointer" type="checkbox" onChange={(event) => setUseSymbols(event.target.checked)} />
+                <input checked={useSymbols} className="w-8 h-8 accent-primary cursor-pointer" type="checkbox" onChange={(event) => setUseSymbols(event.target.checked)} />
               </label>
             </div>
             <button className="relative w-full mt-12 p-[2px] rounded-full overflow-hidden hover:scale-105 active:scale-100 transition-transform duration-300" onClick={regenerate}>

@@ -2,13 +2,10 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useVault } from '@/context/VaultContext'
 import { checkPasswordBreach, saveBreachResults } from '@/services/api'
-
-async function getPasswordSha1(password: string) {
-  const hashBuffer = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(password))
-  return Array.from(new Uint8Array(hashBuffer)).map((byte) => byte.toString(16).padStart(2, '0')).join('').toUpperCase()
-}
+import { usePageMeta } from '@/hooks/usePageMeta'
 
 function VaultBreachPage() {
+  usePageMeta('Breach Monitor · VaultKey', 'Check your stored passwords against known data breaches.')
   const navigate = useNavigate()
   const { vaultData, token, isUnlocked, clearVaultSession } = useVault()
 
@@ -45,7 +42,6 @@ function VaultBreachPage() {
 
   useEffect(() => {
     if (!vaultData || !isUnlocked) {
-      setBreachedEntryIds(new Set())
       return
     }
 
@@ -71,11 +67,10 @@ function VaultBreachPage() {
         setBreachedEntryIds(new Set(results.filter(([, breached]) => breached).map(([id]) => id)))
         if (token) {
           try {
-            await saveBreachResults(token, await Promise.all(entries.map(async (entry, index) => ({
+            await saveBreachResults(token, entries.map((entry, index) => ({
               entry_id: entry.id,
-              password_sha1: await getPasswordSha1(entry.password),
               breached: results[index][1],
-            }))))
+            })))
           } catch {}
         }
         setLoading(false)
@@ -108,17 +103,17 @@ function VaultBreachPage() {
 
   return (
     <div className="min-h-screen flex flex-col font-body-md text-body-md bg-paper text-ink">
-      <header className="w-full h-16 bg-paper flex justify-between items-center px-gutter max-w-full z-50 sticky top-0 border-b border-surface-dim">
+      <header className="w-full min-h-16 py-2 bg-paper flex flex-wrap gap-x-4 gap-y-2 justify-between items-center px-gutter max-w-full z-50 sticky top-0 border-b border-surface-dim">
         <Link to="/" className="font-headline-md text-headline-md text-primary tracking-tighter hover:opacity-75 transition-opacity">VaultKey</Link>
-        <nav className="hidden md:flex gap-8 items-center font-body-md text-body-md">
-          <Link to="/vault" className="text-on-surface-variant hover:text-pink transition-colors duration-200">Vault</Link>
-          <button onClick={() => navigate('/generator')} className="text-on-surface-variant font-body-md cursor-pointer hover:text-pink transition-colors duration-200">Generator</button>
-          <Link to="/vault/sharing" className="text-on-surface-variant hover:text-pink transition-colors duration-200">Sharing</Link>
-          <Link to="/vault/activity" className="text-on-surface-variant hover:text-pink transition-colors duration-200">Activity</Link>
+        <nav className="flex flex-wrap gap-x-5 gap-y-1 md:gap-8 items-center font-body-md text-body-md">
+          <Link to="/vault" className="text-on-surface-variant hover:text-primary transition-colors duration-200">Vault</Link>
+          <button onClick={() => navigate('/generator')} className="text-on-surface-variant font-body-md cursor-pointer hover:text-primary transition-colors duration-200">Generator</button>
+          <Link to="/vault/sharing" className="text-on-surface-variant hover:text-primary transition-colors duration-200">Sharing</Link>
+          <Link to="/vault/activity" className="text-on-surface-variant hover:text-primary transition-colors duration-200">Activity</Link>
           <span className="text-ink border-b border-ink">Breach</span>
         </nav>
         <div className="flex gap-4 items-center">
-          <Link to="/" className="text-on-surface-variant hover:text-pink transition-colors duration-200">Log Out</Link>
+          <button type="button" onClick={handleLogout} className="text-on-surface-variant hover:text-primary transition-colors duration-200">Log Out</button>
         </div>
       </header>
 

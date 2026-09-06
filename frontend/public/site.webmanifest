@@ -1,0 +1,20 @@
+{
+  "name": "VaultKey",
+  "short_name": "VaultKey",
+  "description": "Zero-knowledge password manager. Encryption happens entirely in your browser.",
+  "icons": [
+    {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "theme_color": "#336857",
+  "background_color": "#FFF7F0",
+  "display": "standalone"
+}

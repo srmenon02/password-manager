@@ -20,8 +20,10 @@ import {
   protectSharingPrivateKey,
   unprotectSharingPrivateKey,
 } from '@/crypto/sharingProtocol'
+import { usePageMeta } from '@/hooks/usePageMeta'
 
 function VaultSharingPage() {
+  usePageMeta('Sharing · VaultKey', 'Securely share credentials with end-to-end encrypted item sharing.')
   const navigate = useNavigate()
   const { vaultData, vaultKey, token, isUnlocked, clearVaultSession } = useVault()
 
@@ -109,16 +111,20 @@ function VaultSharingPage() {
 
   useEffect(() => {
     if (!token || !isUnlocked) {
-      setSharedInboxItems([])
-      setSharedKeyMaterial(null)
       return
     }
 
+    // See VaultActivityPage: fetch-on-mount sets its loading flag before the first await.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadSharedInbox(token)
   }, [isUnlocked, token])
 
   useEffect(() => {
     if (!vaultKey || !currentUserId || !sharedKeyMaterial || sharedInboxItems.length === 0) {
+      // Deliberate: drops decrypted share plaintext from memory as soon as the vault key or
+      // key material goes away. This is a security teardown, not a render sync, so it stays
+      // synchronous rather than being deferred or derived.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setOpenedShares({})
       return
     }
@@ -340,17 +346,17 @@ function VaultSharingPage() {
 
   return (
     <div className="min-h-screen flex flex-col font-body-md text-body-md bg-paper text-ink">
-      <header className="w-full h-16 bg-paper flex justify-between items-center px-gutter max-w-full z-50 sticky top-0 border-b border-surface-dim">
+      <header className="w-full min-h-16 py-2 bg-paper flex flex-wrap gap-x-4 gap-y-2 justify-between items-center px-gutter max-w-full z-50 sticky top-0 border-b border-surface-dim">
         <Link to="/" className="font-headline-md text-headline-md text-primary tracking-tighter hover:opacity-75 transition-opacity">VaultKey</Link>
-        <nav className="hidden md:flex gap-8 items-center font-body-md text-body-md">
-          <Link to="/vault" className="text-on-surface-variant hover:text-pink transition-colors duration-200">Vault</Link>
-          <button onClick={() => navigate('/generator')} className="text-on-surface-variant font-body-md cursor-pointer hover:text-pink transition-colors duration-200">Generator</button>
+        <nav className="flex flex-wrap gap-x-5 gap-y-1 md:gap-8 items-center font-body-md text-body-md">
+          <Link to="/vault" className="text-on-surface-variant hover:text-primary transition-colors duration-200">Vault</Link>
+          <button onClick={() => navigate('/generator')} className="text-on-surface-variant font-body-md cursor-pointer hover:text-primary transition-colors duration-200">Generator</button>
           <span className="text-ink border-b border-ink">Sharing</span>
-          <Link to="/vault/activity" className="text-on-surface-variant hover:text-pink transition-colors duration-200">Activity</Link>
-          <Link to="/vault/breach" className="text-on-surface-variant hover:text-pink transition-colors duration-200">Breach</Link>
+          <Link to="/vault/activity" className="text-on-surface-variant hover:text-primary transition-colors duration-200">Activity</Link>
+          <Link to="/vault/breach" className="text-on-surface-variant hover:text-primary transition-colors duration-200">Breach</Link>
         </nav>
         <div className="flex gap-4 items-center">
-          <Link to="/" className="text-on-surface-variant hover:text-pink transition-colors duration-200">Log Out</Link>
+          <button type="button" onClick={handleLogout} className="text-on-surface-variant hover:text-primary transition-colors duration-200">Log Out</button>
         </div>
       </header>
 
@@ -385,7 +391,7 @@ function VaultSharingPage() {
               <div><label className="font-label-caps text-label-caps text-on-surface-variant uppercase mb-2 block" htmlFor="share-target">Select Credential</label><select id="share-target" value={shareTargetId ?? ''} onChange={(event) => setShareTargetId(event.target.value || null)} className="input-line w-full py-2 bg-transparent text-ink"><option value="">Select a credential</option>{orderedEntries.map((entry) => <option key={entry.id} value={entry.id}>{entry.site} / {entry.username}</option>)}</select></div>
               <div><label className="font-label-caps text-label-caps text-on-surface-variant uppercase mb-2 block" htmlFor="share-recipient-email">Recipient Email</label><input id="share-recipient-email" type="email" value={shareRecipientEmail} onChange={(event) => setShareRecipientEmail(event.target.value)} className="input-line w-full py-2 bg-transparent text-ink" placeholder="colleague@example.com" /></div>
               <button type="button" className="shine-button w-full py-4 disabled:opacity-50" onClick={handleShareSelectedEntry} disabled={shareLoading || !selectedShareEntry}>{shareLoading ? 'Sharing...' : 'Share Credential'}</button>
-              {shareTargetId && <button type="button" className="text-on-surface-variant hover:text-pink" onClick={() => setShareTargetId(null)}>Clear selection</button>}
+              {shareTargetId && <button type="button" className="text-on-surface-variant hover:text-primary" onClick={() => setShareTargetId(null)}>Clear selection</button>}
               {shareError && <p className="border border-error bg-error-container p-3 text-on-error-container">{shareError}</p>}
               {shareStatus && <p className="border border-primary bg-mint/30 p-3 text-ink">{shareStatus}</p>}
             </div>

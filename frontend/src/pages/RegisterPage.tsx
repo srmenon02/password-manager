@@ -8,8 +8,13 @@ import { wrapKey } from '@/crypto/keyWrapping'
 import { registerUser } from '@/services/api'
 import { useVault } from '@/context/VaultContext'
 import { createEmptyVault } from '@/models/vault'
+import { usePageMeta } from '@/hooks/usePageMeta'
 
 export default function RegisterPage() {
+  usePageMeta(
+    'Create Account · VaultKey',
+    'Create your zero-knowledge VaultKey account. Your master password is derived and used entirely client-side.'
+  )
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -126,14 +131,14 @@ export default function RegisterPage() {
           </div>
         </div>
 
-        <div className="w-full flex items-center p-margin-safe lg:p-[120px] bg-paper lg:w-1/2">
+        <div className="w-full flex items-center p-margin-safe pt-24 lg:p-[120px] bg-paper lg:w-1/2">
           <div className="w-full max-w-md ml-auto mr-auto lg:ml-0 lg:mr-auto">
             <div className="mb-12">
               <h2 className="font-headline-md text-headline-md font-bold text-ink mb-2">Create Account</h2>
             </div>
 
             {error && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
+              <div role="alert" className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
                 <p className="text-sm text-red-800">{error}</p>
               </div>
             )}
@@ -142,7 +147,7 @@ export default function RegisterPage() {
               <div className="flex flex-col gap-2">
                 <label className="font-label-caps text-label-caps text-ink tracking-widest uppercase font-bold" htmlFor="email">Email Address</label>
                 <input
-                  className="w-full border-none border-b-2 border-taupe rounded-none bg-transparent py-3 px-0 font-body-md text-ink focus:outline-none focus:shadow-none focus:border-mint"
+                  className="w-full border-x-0 border-t-0 border-b-2 border-solid border-taupe rounded-none bg-transparent py-3 px-0 font-body-md text-ink focus:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                   id="email"
                   placeholder="jane@example.com"
                   type="email"
@@ -160,7 +165,7 @@ export default function RegisterPage() {
                 </label>
                 <div className="relative">
                   <input
-                    className="w-full border-none border-b-2 border-taupe rounded-none bg-transparent py-3 pr-14 px-0 font-body-md text-ink focus:outline-none focus:shadow-none focus:border-mint"
+                    className="w-full border-x-0 border-t-0 border-b-2 border-solid border-taupe rounded-none bg-transparent py-3 pr-14 px-0 font-body-md text-ink focus:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                     id="password"
                     placeholder="************"
                     type={showPassword ? 'text' : 'password'}
@@ -173,7 +178,7 @@ export default function RegisterPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword((current) => !current)}
-                    className="absolute right-0 top-1/2 -translate-y-1/2 text-on-surface-variant font-body-md cursor-pointer hover:text-pink transition-colors duration-200"
+                    className="absolute right-0 top-1/2 -translate-y-1/2 text-on-surface-variant font-body-md cursor-pointer hover:text-primary transition-colors duration-200"
                   >
                     {showPassword ? 'Hide' : 'Show'}
                   </button>
@@ -186,7 +191,7 @@ export default function RegisterPage() {
                 <label className="font-label-caps text-label-caps text-ink tracking-widest uppercase font-bold" htmlFor="confirmPassword">Confirm Password</label>
                 <div className="relative">
                   <input
-                    className="w-full border-none border-b-2 border-taupe rounded-none bg-transparent py-3 pr-14 px-0 font-body-md text-ink focus:outline-none focus:shadow-none focus:border-mint"
+                    className="w-full border-x-0 border-t-0 border-b-2 border-solid border-taupe rounded-none bg-transparent py-3 pr-14 px-0 font-body-md text-ink focus:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                     id="confirmPassword"
                     placeholder="************"
                     type={showConfirmPassword ? 'text' : 'password'}
@@ -198,7 +203,7 @@ export default function RegisterPage() {
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword((current) => !current)}
-                    className="absolute right-0 top-1/2 -translate-y-1/2 text-on-surface-variant font-body-md cursor-pointer hover:text-pink transition-colors duration-200"
+                    className="absolute right-0 top-1/2 -translate-y-1/2 text-on-surface-variant font-body-md cursor-pointer hover:text-primary transition-colors duration-200"
                   >
                     {showConfirmPassword ? 'Hide' : 'Show'}
                   </button>
@@ -218,7 +223,7 @@ export default function RegisterPage() {
                 </button>
                 <p className="text-sm text-on-surface-variant text-center">
                   Already have an account?{' '}
-                  <Link to="/login" className="text-ink font-bold hover:text-pink transition-colors duration-200">
+                  <Link to="/login" className="text-ink font-bold hover:text-primary transition-colors duration-200">
                     Log In
                   </Link>
                 </p>
