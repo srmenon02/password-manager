@@ -1,5 +1,6 @@
 import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import type { VaultEntry } from '@shared/types'
 import { useVault } from '@/context/VaultContext'
 import type { VaultEntryInput } from '@/models/vault'
 import { checkPasswordBreach } from '@/services/api'
@@ -47,6 +48,20 @@ const defaultFormState: VaultEntryInput = {
   notes: '',
 }
 
+function entryToFormState(entry: VaultEntry): VaultEntryInput {
+  return {
+    site: entry.site,
+    username: entry.username,
+    password: entry.password,
+    notes: entry.notes || '',
+  }
+}
+
+// Set by the breach page's "Change Password" action.
+interface VaultRouteState {
+  editEntryId?: string
+}
+
 const fieldLabel = 'block font-label-caps text-label-caps uppercase text-on-surface-variant mb-1'
 const fieldInput =
   'input-line w-full px-1 py-2 font-body-md text-body-md text-ink placeholder:text-on-surface-variant'
@@ -56,6 +71,7 @@ const rowAction =
 export default function VaultPage() {
   usePageMeta('Your Vault · VaultKey', 'View, add, and manage your encrypted credentials.')
   const navigate = useNavigate()
+  const location = useLocation()
   const {
     vaultData,
     isUnlocked,
@@ -67,8 +83,17 @@ export default function VaultPage() {
     saveVault,
   } = useVault()
 
-  const [formState, setFormState] = useState<VaultEntryInput>(defaultFormState)
-  const [editingId, setEditingId] = useState<string | null>(null)
+  // Arriving from the breach page's "Change Password" opens that entry for editing.
+  // Resolved before useState so it seeds the form directly instead of through an effect.
+  const requestedEditId = (location.state as VaultRouteState | null)?.editEntryId
+  const deepLinkedEntry = requestedEditId
+    ? vaultData?.entries.find((entry) => entry.id === requestedEditId) ?? null
+    : null
+
+  const [formState, setFormState] = useState<VaultEntryInput>(
+    deepLinkedEntry ? entryToFormState(deepLinkedEntry) : defaultFormState
+  )
+  const [editingId, setEditingId] = useState<string | null>(deepLinkedEntry?.id ?? null)
   const [error, setError] = useState<string | null>(null)
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -89,6 +114,21 @@ export default function VaultPage() {
       navigate('/login')
     }
   }, [navigate])
+
+  useEffect(() => {
+    if (!deepLinkedEntry) {
+      return
+    }
+
+    // Consume the handoff so a reload, or coming Back to the vault later, does not
+    // silently reopen the editor on an entry the user has moved on from.
+    navigate(location.pathname, { replace: true, state: null })
+    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    formRef.current?.querySelector<HTMLInputElement>('#entry-site')?.focus({ preventScroll: true })
+    // Mount-only: the form state was already seeded from this entry above, and the
+    // navigate() call below clears the route state this depends on.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     if (!saveMessage) {
@@ -233,12 +273,7 @@ export default function VaultPage() {
     setPendingDeleteId(null)
     setEditingId(entry.id)
     setRevealPassword(false)
-    setFormState({
-      site: entry.site,
-      username: entry.username,
-      password: entry.password,
-      notes: entry.notes || '',
-    })
+    setFormState(entryToFormState(entry))
     formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
     // Without this, a keyboard user is scrolled to the form while focus stays on the row's
     // Edit button, which has just been re-rendered off-screen.

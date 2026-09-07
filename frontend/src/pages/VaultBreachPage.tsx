@@ -188,7 +188,8 @@ function VaultBreachPage() {
                 <button
                   type="button"
                   className="shine-button min-h-11 px-6 py-3 uppercase shrink-0"
-                  onClick={() => navigate('/vault')}
+                  aria-label={`Change password for ${entry.site}`}
+                  onClick={() => navigate('/vault', { state: { editEntryId: entry.id } })}
                 >
                   Change Password
                 </button>
