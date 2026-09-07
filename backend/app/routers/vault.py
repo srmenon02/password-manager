@@ -1,3 +1,4 @@
+import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 import base64
@@ -17,6 +18,8 @@ from app.schemas import (
 )
 from app.auth import get_current_user
 from datetime import datetime, timezone
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -75,10 +78,11 @@ async def update_vault(
     try:
         encrypted_blob_bytes = base64.b64decode(request.encrypted_blob)
         vault_iv_bytes = base64.b64decode(request.vault_iv)
-    except Exception as e:
+    except Exception:
+        logger.exception("vault update: rejected malformed base64 in request")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"error": "invalid_encoding", "message": f"Invalid base64 encoding: {str(e)}"}
+            detail={"error": "invalid_encoding", "message": "Invalid base64 encoding"}
         )
     
     if len(vault_iv_bytes) != 12:
@@ -98,11 +102,12 @@ async def update_vault(
         )
         db.commit()
         db.refresh(vault)
-    except Exception as e:
+    except Exception:
         db.rollback()
+        logger.exception("vault update: database error")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={"error": "database_error", "message": f"Failed to update vault: {str(e)}"}
+            detail={"error": "database_error", "message": "Failed to update vault"}
         )
     
     return VaultUpdateResponse(updated_at=vault.updated_at)
@@ -225,10 +230,11 @@ async def change_password(
         new_salt_bytes = base64.b64decode(request.new_salt)
         new_protected_key_bytes = base64.b64decode(request.new_protected_key)
         new_protected_key_iv_bytes = base64.b64decode(request.new_protected_key_iv)
-    except Exception as e:
+    except Exception:
+        logger.exception("change password: rejected malformed base64 in request")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"error": "invalid_encoding", "message": f"Invalid base64 encoding: {str(e)}"}
+            detail={"error": "invalid_encoding", "message": "Invalid base64 encoding"}
         )
     
     if len(new_salt_bytes) != 16:
@@ -256,11 +262,12 @@ async def change_password(
         append_audit_event(db, user_id=str(current_user.id), action="password_changed")
                 
         db.commit()
-    except Exception as e:
+    except Exception:
         db.rollback()
+        logger.exception("change password: database error")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={"error": "database_error", "message": f"Failed to change password: {str(e)}"}
+            detail={"error": "database_error", "message": "Failed to change password"}
         )
     
     return {"message": "Password changed successfully"}

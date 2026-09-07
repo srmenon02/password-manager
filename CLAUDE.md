@@ -101,7 +101,7 @@ All three must pass on the PR head commit (`.github/workflows/ci.yml`, stages ru
 2. `test` — vitest (frontend) + pytest (backend).
 3. `build` — `tsc && vite build`, plus a backend import-check.
 
-`claude-review` (from `.github/workflows/claude.yml`) is advisory, not a required check.
+`Claude Code` and `Claude Code Review` (`claude.yml`, `claude-code-review.yml`) are advisory, not required checks.
 
 ### Lint / test / coverage rules
 - Lint runs `eslint . --report-unused-disable-directives --max-warnings 0` in both TS workspaces. **A warning is a failure** — don't add `eslint-disable` to get green; fix the code or justify the disable in the PR.
@@ -113,9 +113,10 @@ All three must pass on the PR head commit (`.github/workflows/ci.yml`, stages ru
 - Both coverage reports are posted to the GitHub Actions job summary on every run, pass or fail.
 
 ### Secret management
+- **Error responses must not carry internal detail.** `HTTPException` bodies get a static message; the exception goes to `logger.exception()` instead. Never interpolate `str(e)` into a response — SQLAlchemy and base64 errors quote back query fragments and input bytes.
 - **No hardcoded keys, tokens, passwords, or connection strings in the repo** — not in source, not in workflow YAML, not in test fixtures.
 - Runtime config comes from `backend/.env` locally (gitignored) and from **GitHub Secrets** in CI/CD. Reference them only as `${{ secrets.NAME }}`.
-- `ANTHROPIC_API_KEY` lives in repo secrets; it is consumed solely by `.github/workflows/claude.yml`.
+- Claude's workflows authenticate with **`CLAUDE_CODE_OAUTH_TOKEN`** (repo secret, set by `/install-github-app`) — not an `ANTHROPIC_API_KEY`. It is consumed only by `claude.yml` and `claude-code-review.yml`.
 - `ci.yml` needs no secrets — if a step ever appears to need one, that step probably belongs in a separate, environment-gated workflow.
 - Workflow permissions are least-privilege: `contents: read` at the top level, with `pull-requests: write` granted only to the job that actually comments on PRs.
 - Pin third-party actions to a specific version tag (e.g. `anthropics/claude-code-action@v1.0.217`), never `@latest` or `@main`.

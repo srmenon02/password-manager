@@ -1,3 +1,4 @@
+import logging
 import hmac
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -30,6 +31,8 @@ try:
 except ModuleNotFoundError:  # pragma: no cover - fallback for local testing
     def get_ng(*_args, **_kwargs):
         return 0, 0
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -80,10 +83,11 @@ async def register(request: RegisterRequest, db: Session = Depends(get_db)):
         protected_key_iv_bytes = base64.b64decode(request.protected_key_iv)
         encrypted_blob_bytes = base64.b64decode(request.encrypted_blob)
         vault_iv_bytes = base64.b64decode(request.vault_iv)
-    except Exception as e:
+    except Exception:
+        logger.exception("register: rejected malformed base64 in registration payload")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"error": "invalid_encoding", "message": f"Invalid base64 encoding: {str(e)}"}
+            detail={"error": "invalid_encoding", "message": "Invalid base64 encoding"}
         )
     
     # Validate field sizes
@@ -139,11 +143,12 @@ async def register(request: RegisterRequest, db: Session = Depends(get_db)):
             status_code=status.HTTP_409_CONFLICT,
             detail={"error": "email_exists", "message": "Email already registered"}
         )
-    except Exception as e:
+    except Exception:
         db.rollback()
+        logger.exception("register: database error creating user")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={"error": "database_error", "message": f"Failed to create user: {str(e)}"}
+            detail={"error": "database_error", "message": "Failed to create user"}
         )
     
     # Create JWT token
