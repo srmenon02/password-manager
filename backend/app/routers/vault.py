@@ -216,7 +216,7 @@ async def change_password(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail={"error": "invalid_proof", "message": "Invalid proof length"}
             )
-    except Exception as e:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"error": "invalid_encoding", "message": "Invalid current password"}

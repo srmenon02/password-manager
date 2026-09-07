@@ -1,0 +1,4 @@
+[lint]
+# T20 (flake8-print): stray prints in the SRP/vault paths have leaked session keys
+# and emails to stdout before. Keep them out of the auth and crypto code for good.
+extend-select = ["T20"]
