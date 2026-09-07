@@ -75,6 +75,24 @@ describe('source hygiene', () => {
   })
 })
 
+describe('session persistence', () => {
+  const keyStorage = readFileSync(join(__dirname, '..', 'crypto', 'keyStorage.ts'), 'utf8')
+
+  it('stores the vault key as non-extractable', () => {
+    // The whole point of persisting through IndexedDB rather than web storage is that
+    // exportKey() throws on the stored handle, so an XSS cannot exfiltrate the key.
+    const importCall = keyStorage.match(/importKey\([\s\S]*?\)/)?.[0] ?? ''
+    expect(importCall).toMatch(/,\s*false\s*,/)
+  })
+
+  it('never writes raw key material to web storage', () => {
+    // The opaque tab handle is the only thing that may reach localStorage/sessionStorage;
+    // exported key bytes must stay inside the IndexedDB path.
+    const writes = keyStorage.match(/(?:local|session)Storage\.setItem\([^)]*\)/g) ?? []
+    expect(writes).toEqual(['sessionStorage.setItem(HANDLE_KEY, handle)'])
+  })
+})
+
 describe('navigation', () => {
   it('keeps nav reachable below the md breakpoint', () => {
     for (const f of pages) {

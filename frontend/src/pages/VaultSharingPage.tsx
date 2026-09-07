@@ -22,20 +22,28 @@ import {
 } from '@/crypto/sharingProtocol'
 import { usePageMeta } from '@/hooks/usePageMeta'
 
+const rowAction =
+  'vault-btn-secondary min-h-11 px-4 inline-flex items-center justify-center font-body-md text-body-md'
+
+const messageBox = 'border-2 border-error bg-error-container p-4 text-on-error-container'
+
 function VaultSharingPage() {
   usePageMeta('Sharing · VaultKey', 'Securely share credentials with end-to-end encrypted item sharing.')
   const navigate = useNavigate()
   const { vaultData, vaultKey, token, isUnlocked, clearVaultSession } = useVault()
 
   function handleLogout() {
-    localStorage.clear()
+    // Scoped to this app's keys — localStorage.clear() would also wipe unrelated
+    // data stored on this origin.
+    localStorage.removeItem('vaultkey_token')
     clearVaultSession()
     navigate('/')
   }
 
   const [shareTargetId, setShareTargetId] = useState<string | null>(null)
   const [shareRecipientEmail, setShareRecipientEmail] = useState('')
-  const [sharePermission] = useState<'read_only' | 'read_write'>('read_write')
+  // No permission picker ships yet; this is the value every share is created with.
+  const sharePermission: 'read_only' | 'read_write' = 'read_write'
   const [shareLoading, setShareLoading] = useState(false)
   const [shareStatus, setShareStatus] = useState<string | null>(null)
   const [shareError, setShareError] = useState<string | null>(null)
@@ -57,6 +65,8 @@ function VaultSharingPage() {
 
   const [openedShares, setOpenedShares] = useState<Record<string, { site: string; username: string; password: string }>>({})
   const [openShareError, setOpenShareError] = useState<string | null>(null)
+  const [revealedShareIds, setRevealedShareIds] = useState<Set<string>>(new Set())
+  const [inboxStatus, setInboxStatus] = useState<string | null>(null)
   const [deletingShareId, setDeletingShareId] = useState<string | null>(null)
   const [deleteShareError, setDeleteShareError] = useState<string | null>(null)
 
@@ -302,6 +312,15 @@ function VaultSharingPage() {
     }
   }
 
+  async function handleCopySharedPassword(site: string, password: string) {
+    try {
+      await navigator.clipboard.writeText(password)
+      setInboxStatus(`Password for ${site} copied to clipboard.`)
+    } catch {
+      setOpenShareError('Could not reach the clipboard. Use Show to read the password instead.')
+    }
+  }
+
   async function handleDeleteSharedItem(shareId: string) {
     if (!token) {
       setDeleteShareError('Sign in to delete shared items')
@@ -329,15 +348,18 @@ function VaultSharingPage() {
 
   if (!isUnlocked || !vaultData) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-paper px-6">
-        <div className="max-w-2xl mx-auto bg-surface-container-low rounded-lg shadow-xl p-8 text-center border border-surface-dim">
-          <h1 className="text-2xl font-bold text-ink mb-3">Vault Locked</h1>
-          <p className="text-on-surface-variant mb-6">Sign in to decrypt and use secure sharing.</p>
+      <div className="min-h-screen flex items-center justify-center bg-paper px-gutter selection:bg-mint selection:text-ink">
+        <div className="w-full max-w-md bg-surface-container-lowest border-2 border-ink p-8 text-center shadow-[8px_8px_0px_0px_theme(colors.ink)]">
+          <h1 className="font-headline-md text-headline-md text-ink mb-3">Vault locked</h1>
+          <p className="font-body-md text-body-md text-on-surface-variant mb-8">
+            Your vault is encrypted. Sign in with your master password to decrypt it in this browser.
+          </p>
           <button
+            type="button"
             onClick={() => navigate('/login')}
-            className="vault-btn-primary px-4 py-2 font-body-md font-bold"
+            className="vault-btn-primary w-full min-h-11 px-4 font-body-md text-body-md font-bold"
           >
-            Go to Login
+            Go to login
           </button>
         </div>
       </div>
@@ -348,10 +370,10 @@ function VaultSharingPage() {
     <div className="min-h-screen flex flex-col font-body-md text-body-md bg-paper text-ink">
       <header className="w-full min-h-16 py-2 bg-paper flex flex-wrap gap-x-4 gap-y-2 justify-between items-center px-gutter max-w-full z-50 sticky top-0 border-b border-surface-dim">
         <Link to="/" className="font-headline-md text-headline-md text-primary tracking-tighter hover:opacity-75 transition-opacity">VaultKey</Link>
-        <nav className="flex flex-wrap gap-x-5 gap-y-1 md:gap-8 items-center font-body-md text-body-md">
+        <nav aria-label="Vault sections" className="flex flex-wrap gap-x-5 gap-y-1 md:gap-8 items-center font-body-md text-body-md">
           <Link to="/vault" className="text-on-surface-variant hover:text-primary transition-colors duration-200">Vault</Link>
-          <button onClick={() => navigate('/generator')} className="text-on-surface-variant font-body-md cursor-pointer hover:text-primary transition-colors duration-200">Generator</button>
-          <span className="text-ink border-b border-ink">Sharing</span>
+          <Link to="/generator" className="text-on-surface-variant hover:text-primary transition-colors duration-200">Generator</Link>
+          <span aria-current="page" className="text-ink border-b border-ink">Sharing</span>
           <Link to="/vault/activity" className="text-on-surface-variant hover:text-primary transition-colors duration-200">Activity</Link>
           <Link to="/vault/breach" className="text-on-surface-variant hover:text-primary transition-colors duration-200">Breach</Link>
         </nav>
@@ -366,34 +388,153 @@ function VaultSharingPage() {
         </section>
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-gutter lg:gap-16">
           <section className="lg:col-span-7 xl:col-span-8 flex flex-col gap-6">
-            <div className="flex items-center justify-between"><h2 className="font-headline-md text-headline-md text-ink">Shared with me</h2><span className="font-label-caps text-label-caps text-on-surface-variant">{sharedInboxItems.length} ITEMS</span></div>
-            {sharedInboxLoading && <p className="text-on-surface-variant">Loading shared items...</p>}
-            {sharedInboxError && <p className="border border-error bg-error-container p-4 text-on-error-container">{sharedInboxError}</p>}
-            {!sharedInboxLoading && sharedInboxItems.length === 0 && <p className="border border-taupe bg-surface-container-low p-6 text-on-surface-variant">No shared credentials yet.</p>}
+            <div className="flex items-center justify-between gap-4">
+              <h2 className="font-headline-md text-headline-md text-ink">Shared with me</h2>
+              <span className="font-label-caps text-label-caps uppercase text-on-surface-variant shrink-0">
+                {sharedInboxItems.length} item{sharedInboxItems.length === 1 ? '' : 's'}
+              </span>
+            </div>
+            {sharedInboxLoading && <p className="text-on-surface-variant">Loading shared items…</p>}
+            {sharedInboxError && <p role="alert" className={messageBox}>{sharedInboxError}</p>}
+            {inboxStatus && (
+              <p role="status" className="border-2 border-ink bg-mint p-4 text-ink">
+                {inboxStatus}
+              </p>
+            )}
+            {/* Only claim the inbox is empty when we actually managed to read it. */}
+            {!sharedInboxLoading && !sharedInboxError && sharedInboxItems.length === 0 && (
+              <p className="border-2 border-dashed border-ink/30 bg-surface-container-lowest px-6 py-12 text-center text-on-surface-variant">
+                Nothing has been shared with you yet.
+              </p>
+            )}
             {sharedInboxItems.map((item) => {
               const openedShare = openedShares[item.share_id]
-              return <article key={item.share_id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 p-6 bg-surface-container-low border border-ink">
-                <div><h3 className="font-body-lg text-body-lg text-ink">{openedShare?.site ?? 'Unavailable'}</h3><p className="text-on-surface-variant">{openedShare?.username ?? 'Unavailable'}</p><p className="font-mono text-sm break-all text-on-surface-variant">{openedShare?.password ?? 'Unavailable'}</p></div>
-                <button type="button" className="vault-btn-secondary px-5 py-2 disabled:opacity-50" onClick={() => handleDeleteSharedItem(item.share_id)} disabled={deletingShareId === item.share_id}>{deletingShareId === item.share_id ? 'Deleting...' : 'Delete'}</button>
-              </article>
+              const isRevealed = revealedShareIds.has(item.share_id)
+              const isDeleting = deletingShareId === item.share_id
+
+              return (
+                <article
+                  key={item.share_id}
+                  className="flex flex-col sm:flex-row sm:items-start justify-between gap-6 p-6 bg-surface-container-low border border-ink"
+                >
+                  {openedShare ? (
+                    <div className="min-w-0">
+                      <h3 className="font-body-lg text-body-lg text-ink break-words">{openedShare.site}</h3>
+                      <p className="text-on-surface-variant break-words">{openedShare.username}</p>
+                      {/* Masked by default: a shared credential list sits open on screen far
+                          longer than the moment the password is actually needed. */}
+                      <p className="mt-2 font-mono text-sm break-all text-on-surface-variant">
+                        {isRevealed ? openedShare.password : '•'.repeat(12)}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="min-w-0">
+                      <h3 className="font-body-lg text-body-lg text-ink">Could not decrypt this item</h3>
+                      <p className="text-on-surface-variant">
+                        It may have been shared before your sharing keys were generated.
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap items-center gap-2 shrink-0">
+                    {openedShare && (
+                      <>
+                        <button
+                          type="button"
+                          className={rowAction}
+                          aria-pressed={isRevealed}
+                          aria-label={`${isRevealed ? 'Hide' : 'Show'} password for ${openedShare.site}`}
+                          onClick={() =>
+                            setRevealedShareIds((prev) => {
+                              const next = new Set(prev)
+                              if (next.has(item.share_id)) {
+                                next.delete(item.share_id)
+                              } else {
+                                next.add(item.share_id)
+                              }
+                              return next
+                            })
+                          }
+                        >
+                          {isRevealed ? 'Hide' : 'Show'}
+                        </button>
+                        <button
+                          type="button"
+                          className={rowAction}
+                          aria-label={`Copy password for ${openedShare.site}`}
+                          onClick={() => handleCopySharedPassword(openedShare.site, openedShare.password)}
+                        >
+                          Copy
+                        </button>
+                      </>
+                    )}
+                    <button
+                      type="button"
+                      className={`${rowAction} disabled:opacity-50 disabled:cursor-not-allowed`}
+                      onClick={() => handleDeleteSharedItem(item.share_id)}
+                      disabled={isDeleting}
+                    >
+                      {isDeleting ? 'Deleting…' : 'Delete'}
+                    </button>
+                  </div>
+                </article>
+              )
             })}
-            {openShareError && <p className="border border-error bg-error-container p-4 text-on-error-container">{openShareError}</p>}
-            {deleteShareError && <p className="border border-error bg-error-container p-4 text-on-error-container">{deleteShareError}</p>}
+            {openShareError && <p role="alert" className={messageBox}>{openShareError}</p>}
+            {deleteShareError && <p role="alert" className={messageBox}>{deleteShareError}</p>}
           </section>
 
-          <aside className="lg:col-span-5 xl:col-span-4 h-fit mt-12 lg:mt-0 bg-white p-8 border border-ink shadow-[8px_8px_0_0_#190922]">
+          <aside className="lg:col-span-5 xl:col-span-4 h-fit mt-12 lg:mt-0 bg-surface-container-lowest p-8 border-2 border-ink shadow-[8px_8px_0px_0px_theme(colors.ink)]">
             <h2 className="font-headline-md text-headline-md text-ink mb-4">Share Access</h2>
             <p className="text-on-surface-variant mb-8">Securely grant access to a credential.</p>
-            <button type="button" className="shine-button w-full px-4 py-3 mb-8 disabled:opacity-50" onClick={handleSetupSharingKeys} disabled={sharingSetupLoading}>{sharingSetupLoading ? 'Generating...' : 'Generate Sharing Keys'}</button>
-            {sharingSetupError && <p className="mb-4 border border-error bg-error-container p-3 text-on-error-container">{sharingSetupError}</p>}
-            {sharingSetupMessage && <p className="mb-4 text-on-surface-variant">{sharingSetupMessage}</p>}
+            <button
+              type="button"
+              className="shine-button w-full min-h-11 px-4 py-3 mb-8 disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleSetupSharingKeys}
+              disabled={sharingSetupLoading}
+            >
+              {sharingSetupLoading ? 'Generating…' : 'Generate Sharing Keys'}
+            </button>
+            {sharingSetupError && (
+              <p role="alert" className="mb-4 border-2 border-error bg-error-container p-3 text-on-error-container">
+                {sharingSetupError}
+              </p>
+            )}
+            {sharingSetupMessage && (
+              <p role="status" className="mb-4 border-2 border-ink bg-mint p-3 text-ink">
+                {sharingSetupMessage}
+              </p>
+            )}
             <div className="flex flex-col gap-8">
               <div><label className="font-label-caps text-label-caps text-on-surface-variant uppercase mb-2 block" htmlFor="share-target">Select Credential</label><select id="share-target" value={shareTargetId ?? ''} onChange={(event) => setShareTargetId(event.target.value || null)} className="input-line w-full py-2 bg-transparent text-ink"><option value="">Select a credential</option>{orderedEntries.map((entry) => <option key={entry.id} value={entry.id}>{entry.site} / {entry.username}</option>)}</select></div>
               <div><label className="font-label-caps text-label-caps text-on-surface-variant uppercase mb-2 block" htmlFor="share-recipient-email">Recipient Email</label><input id="share-recipient-email" type="email" value={shareRecipientEmail} onChange={(event) => setShareRecipientEmail(event.target.value)} className="input-line w-full py-2 bg-transparent text-ink" placeholder="colleague@example.com" /></div>
-              <button type="button" className="shine-button w-full py-4 disabled:opacity-50" onClick={handleShareSelectedEntry} disabled={shareLoading || !selectedShareEntry}>{shareLoading ? 'Sharing...' : 'Share Credential'}</button>
-              {shareTargetId && <button type="button" className="text-on-surface-variant hover:text-primary" onClick={() => setShareTargetId(null)}>Clear selection</button>}
-              {shareError && <p className="border border-error bg-error-container p-3 text-on-error-container">{shareError}</p>}
-              {shareStatus && <p className="border border-primary bg-mint/30 p-3 text-ink">{shareStatus}</p>}
+              <button
+                type="button"
+                className="shine-button w-full min-h-11 py-4 disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={handleShareSelectedEntry}
+                disabled={shareLoading || !selectedShareEntry}
+              >
+                {shareLoading ? 'Sharing…' : 'Share Credential'}
+              </button>
+              {shareTargetId && (
+                <button
+                  type="button"
+                  className="min-h-11 self-start text-on-surface-variant hover:text-primary transition-colors"
+                  onClick={() => setShareTargetId(null)}
+                >
+                  Clear selection
+                </button>
+              )}
+              {shareError && (
+                <p role="alert" className="border-2 border-error bg-error-container p-3 text-on-error-container">
+                  {shareError}
+                </p>
+              )}
+              {shareStatus && (
+                <p role="status" className="border-2 border-ink bg-mint p-3 text-ink">
+                  {shareStatus}
+                </p>
+              )}
             </div>
           </aside>
         </div>

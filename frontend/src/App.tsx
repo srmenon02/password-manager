@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom'
 import HomePage from './pages/HomePage'
 import RegisterPage from './pages/RegisterPage'
 import LoginPage from './pages/LoginPage'
@@ -10,7 +10,25 @@ import GeneratorPage from './pages/GeneratorPage'
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage'
 import TermsPage from './pages/TermsPage'
 import NotFoundPage from './pages/NotFoundPage'
-import { VaultProvider } from '@/context/VaultContext'
+import { VaultProvider, useVault } from '@/context/VaultContext'
+
+// Holds the vault routes for the one tick it takes to rehydrate a reloaded session, so a
+// refresh does not flash "Vault locked" on its way back to an unlocked vault.
+function RestoringVaultSession() {
+  const { isRestoring } = useVault()
+
+  if (!isRestoring) {
+    return <Outlet />
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-paper px-gutter">
+      <p role="status" className="font-body-md text-body-md text-on-surface-variant">
+        Unlocking your vault…
+      </p>
+    </div>
+  )
+}
 
 function App() {
   return (
@@ -20,10 +38,12 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/vault" element={<VaultPage />} />
-          <Route path="/vault/sharing" element={<VaultSharingPage />} />
-          <Route path="/vault/activity" element={<VaultActivityPage />} />
-          <Route path="/vault/breach" element={<VaultBreachPage />} />
+          <Route element={<RestoringVaultSession />}>
+            <Route path="/vault" element={<VaultPage />} />
+            <Route path="/vault/sharing" element={<VaultSharingPage />} />
+            <Route path="/vault/activity" element={<VaultActivityPage />} />
+            <Route path="/vault/breach" element={<VaultBreachPage />} />
+          </Route>
           <Route path="/generator" element={<GeneratorPage />} />
           <Route path="/privacy" element={<PrivacyPolicyPage />} />
           <Route path="/terms" element={<TermsPage />} />
