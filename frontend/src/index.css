@@ -1,4 +1,7 @@
-@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&family=Noto+Serif:ital,wght@0,100..900;1,100..900&display=swap');
+/* Material Symbols is a ligature font: with display=swap the fallback renders the ligature's
+   source text, flashing the literal words "search", "close" and "warning" on every cold load. */
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=block');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,100..900;1,100..900&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -11,6 +14,13 @@ body {
   color: #190922;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Zero specificity, so any element that defines its own focus treatment still wins.
+   Matches .input-line:focus-visible below. */
+:where(a, button, [role='button']):focus-visible {
+  outline: 2px solid #336857;
+  outline-offset: 2px;
 }
 
 .material-symbols-outlined {

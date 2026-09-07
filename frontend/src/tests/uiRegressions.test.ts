@@ -38,11 +38,39 @@ describe('focus visibility', () => {
     expect(css).not.toMatch(/:focus\s*{[^}]*outline:\s*none/)
   })
 
+  it('gives buttons and links a focus ring', () => {
+    // Only .input-line carried a focus-visible outline, so every button and link in the
+    // app fell back to outline-style:none and showed nothing at all on keyboard focus.
+    expect(css).toMatch(/:where\([^)]*button[^)]*\):focus-visible\s*{[^}]*outline:\s*2px/)
+  })
+
   it('keeps border-b visible on underlined inputs', () => {
     for (const f of pages) {
       // border-none sets border-style:none and cancels border-b-2 entirely.
       const broken = /border-none[^"]*border-b-\d/.test(source(f))
       expect(broken, `${f} cancels its own bottom border`).toBe(false)
+    }
+  })
+})
+
+describe('icon font', () => {
+  it('loads Material Symbols with display=block', () => {
+    // A ligature font under display=swap renders the ligature's source text in the
+    // fallback face, flashing the literal words "search"/"close"/"warning" on cold load.
+    const symbols = css.match(/@import url\('[^']*Material\+Symbols[^']*'\)/)?.[0] ?? ''
+    expect(symbols).toContain('display=block')
+    expect(symbols).not.toContain('Noto+Serif')
+  })
+})
+
+describe('source hygiene', () => {
+  it('has no raw control characters in page sources', () => {
+    for (const f of pages) {
+      // A literal NUL written as a string separator made git treat the file as binary,
+      // so every diff on it showed up as "Bin 15528 -> 26191 bytes".
+      const control = new RegExp('[\\u0000-\\u0008\\u000b\\u000c\\u000e-\\u001f]', 'g')
+      const found = source(f).match(control) ?? []
+      expect(found, `${f} contains a raw control character`).toEqual([])
     }
   })
 })
