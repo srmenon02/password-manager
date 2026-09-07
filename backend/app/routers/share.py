@@ -1,3 +1,4 @@
+import hashlib
 import base64
 from collections.abc import Set
 import uuid
@@ -27,7 +28,6 @@ from app.schemas import (
 router = APIRouter()
 ALLOWED_SHARING_KEY_ALGORITHMS: Set[str] = {'ECDH-P256-HKDF-AES256GCM'}
 
-import hashlib
 
 def compute_key_fingerprint(public_key_b64: str, algorithm: str) -> str:
     digest_input = f"{algorithm}:{public_key_b64}".encode("utf-8")

@@ -4,50 +4,133 @@ on:
   push:
     branches: [main]
   pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  NODE_VERSION: '20'
+  PYTHON_VERSION: '3.10'
 
 jobs:
-  frontend:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      # Gates the react-hooks and unused-disable rules. The repo reached zero errors and
-      # zero warnings; --max-warnings 0 in the lint script keeps it there.
-      - name: Lint
-        run: npm run lint --workspace=frontend
-
-      - name: Build
-        run: npm run build --workspace=frontend
-
-      - name: Test
-        run: npx vitest run
-        working-directory: frontend
-
-  backend:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
           cache-dependency-path: backend/requirements.txt
 
-      - name: Install dependencies
+      - run: npm ci
+      - name: Install backend dependencies
         run: pip install -r requirements.txt
         working-directory: backend
 
+      # Both workspaces lint with --max-warnings 0, so any warning fails the job.
+      - name: ESLint (frontend)
+        run: npm run lint --workspace=frontend
+      - name: ESLint (shared)
+        run: npm run lint --workspace=shared
+      # Config in backend/ruff.toml; T20 is enabled to keep debug prints out of the
+      # SRP and vault paths, where they have leaked session keys to stdout before.
+      - name: Ruff (backend)
+        run: ruff check app tests
+        working-directory: backend
+
+  test:
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - run: npm ci
+      - name: Install backend dependencies
+        run: pip install -r requirements.txt
+        working-directory: backend
+
+      - name: Frontend tests
+        run: npx vitest run --coverage 2>&1 | tee "$RUNNER_TEMP/vitest.txt"
+        working-directory: frontend
+
       # Backend tests build a fresh SQLite database per test, so no Postgres or Redis
       # service is needed here.
-      - name: Test
-        run: python -m pytest -q
+      - name: Backend tests
+        run: python -m pytest -q --cov=app --cov-report=term-missing --cov-fail-under=70 2>&1 | tee "$RUNNER_TEMP/pytest.txt"
         working-directory: backend
+
+      - name: Publish results to summary
+        if: always()
+        run: |
+          {
+            echo '## Frontend (vitest + v8 coverage)'
+            echo '```'
+            cat "$RUNNER_TEMP/vitest.txt" 2>/dev/null || echo 'no output'
+            echo '```'
+            echo '## Backend (pytest + coverage, gate 70%)'
+            echo '```'
+            cat "$RUNNER_TEMP/pytest.txt" 2>/dev/null || echo 'no output'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - run: npm ci
+      # `tsc && vite build` — typecheck failures fail the build.
+      - name: Build frontend
+        run: npm run build --workspace=frontend
+
+      - name: Install backend dependencies
+        run: pip install -r requirements.txt
+        working-directory: backend
+      # FastAPI has no build artifact, so the equivalent check is that the app and every
+      # router import cleanly. Values are throwaway: settings are required at import time
+      # but never used here, and no real secret is involved.
+      - name: Import-check backend
+        run: python -c "import app.main"
+        working-directory: backend
+        env:
+          DATABASE_URL: sqlite:///${{ runner.temp }}/build-check.db
+          JWT_SECRET: ci-build-check-not-a-real-secret
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+          retention-days: 7

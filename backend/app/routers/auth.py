@@ -1,3 +1,4 @@
+import logging
 import hmac
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -30,6 +31,8 @@ try:
 except ModuleNotFoundError:  # pragma: no cover - fallback for local testing
     def get_ng(*_args, **_kwargs):
         return 0, 0
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -80,10 +83,11 @@ async def register(request: RegisterRequest, db: Session = Depends(get_db)):
         protected_key_iv_bytes = base64.b64decode(request.protected_key_iv)
         encrypted_blob_bytes = base64.b64decode(request.encrypted_blob)
         vault_iv_bytes = base64.b64decode(request.vault_iv)
-    except Exception as e:
+    except Exception:
+        logger.exception("register: rejected malformed base64 in registration payload")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"error": "invalid_encoding", "message": f"Invalid base64 encoding: {str(e)}"}
+            detail={"error": "invalid_encoding", "message": "Invalid base64 encoding"}
         )
     
     # Validate field sizes
@@ -139,11 +143,12 @@ async def register(request: RegisterRequest, db: Session = Depends(get_db)):
             status_code=status.HTTP_409_CONFLICT,
             detail={"error": "email_exists", "message": "Email already registered"}
         )
-    except Exception as e:
+    except Exception:
         db.rollback()
+        logger.exception("register: database error creating user")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={"error": "database_error", "message": f"Failed to create user: {str(e)}"}
+            detail={"error": "database_error", "message": "Failed to create user"}
         )
     
     # Create JWT token
@@ -245,21 +250,18 @@ async def login_verify(request: LoginVerifyRequest, db: Session = Depends(get_db
     S = pow(A * pow(v, u, N), b, N)
     K = hashlib.sha256(S.to_bytes(N_BYTES, 'big')).digest()
 
-    I = session["user_email"]
+    identity = session["user_email"]
     s = session["salt"]
     N_buf = N.to_bytes(N_BYTES, 'big')
     g_buf = g.to_bytes((g.bit_length() + 7) // 8, 'big')
 
     H_N = hashlib.sha256(N_buf).digest()
     H_g = hashlib.sha256(g_buf).digest()
-    H_I = hashlib.sha256(I.encode('utf-8')).digest()
+    H_I = hashlib.sha256(identity.encode('utf-8')).digest()
     H_xor = bytes(a ^ b for a, b in zip(H_N, H_g))
     M1_check = hashlib.sha256(H_xor + H_I + s + A_buf + B_buf + K).digest()
     
     M1_client = base64.b64decode(request.client_proof_m1)
-    print('server K:', K.hex())
-    print('server M1_check:', M1_check.hex())
-    print('email used:', repr(I))
     if not hmac.compare_digest(M1_check, M1_client):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
