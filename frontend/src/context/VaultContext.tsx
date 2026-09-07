@@ -3,12 +3,18 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type PropsWithChildren,
 } from 'react'
-import { encryptVault } from '@/crypto/vaultEncryption'
-import { updateVault as updateVaultRequest, checkPasswordBreach } from '@/services/api'
+import { decryptVault, encryptVault } from '@/crypto/vaultEncryption'
+import { clearVaultKey, persistVaultKey, restoreVaultKey } from '@/crypto/keyStorage'
+import {
+  updateVault as updateVaultRequest,
+  getVault as getVaultRequest,
+  checkPasswordBreach,
+} from '@/services/api'
 import { createVaultEntry, type VaultEntryInput, updateVaultEntry } from '@/models/vault'
 
 interface VaultContextValue {
@@ -16,6 +22,7 @@ interface VaultContextValue {
   vaultKey: CryptoKey | null
   token: string | null
   isUnlocked: boolean
+  isRestoring: boolean
   isSaving: boolean
   setVaultSession: (session: {
     vaultData: VaultData
@@ -37,12 +44,16 @@ export function VaultProvider({ children }: PropsWithChildren) {
   const [vaultKey, setVaultKey] = useState<CryptoKey | null>(null)
   const [token, setToken] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
+  const [isRestoring, setIsRestoring] = useState(true)
 
   const setVaultSession = useCallback(
     (session: { vaultData: VaultData; vaultKey: CryptoKey; token: string }) => {
       setVaultData(session.vaultData)
       setVaultKey(session.vaultKey)
       setToken(session.token)
+      // Best-effort: a browser that refuses IndexedDB still gets a working in-memory
+      // session, it just cannot survive a reload.
+      void persistVaultKey(session.vaultKey).catch(() => undefined)
     },
     []
   )
@@ -51,6 +62,49 @@ export function VaultProvider({ children }: PropsWithChildren) {
     setVaultData(null)
     setVaultKey(null)
     setToken(null)
+    void clearVaultKey().catch(() => undefined)
+  }, [])
+
+  // Rehydrate after a reload: the JWT is in localStorage and the vault key handle is in
+  // IndexedDB, so the encrypted blob can be re-fetched and decrypted without the master
+  // password. Any failure leaves the vault locked rather than half-open.
+  useEffect(() => {
+    let cancelled = false
+
+    async function restore() {
+      try {
+        const storedToken = localStorage.getItem('vaultkey_token')
+        const storedKey = storedToken ? await restoreVaultKey() : null
+        if (!storedToken || !storedKey) {
+          return
+        }
+
+        const vault = await getVaultRequest(storedToken)
+        const restored = await decryptVault(
+          { ciphertext: vault.encrypted_blob, iv: vault.vault_iv },
+          storedKey
+        )
+        if (cancelled) {
+          return
+        }
+
+        setVaultData(restored)
+        setVaultKey(storedKey)
+        setToken(storedToken)
+      } catch {
+        // An expired JWT, a rotated vault, or a corrupt handle all mean the same thing.
+        await clearVaultKey().catch(() => undefined)
+      } finally {
+        if (!cancelled) {
+          setIsRestoring(false)
+        }
+      }
+    }
+
+    void restore()
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   const addEntry = useCallback((input: VaultEntryInput) => {
@@ -117,6 +171,7 @@ export function VaultProvider({ children }: PropsWithChildren) {
       vaultKey,
       token,
       isUnlocked: vaultData !== null && vaultKey !== null,
+      isRestoring,
       isSaving,
       setVaultSession,
       clearVaultSession,
@@ -130,6 +185,7 @@ export function VaultProvider({ children }: PropsWithChildren) {
       addEntry,
       clearVaultSession,
       editEntry,
+      isRestoring,
       isSaving,
       removeEntry,
       saveVault,

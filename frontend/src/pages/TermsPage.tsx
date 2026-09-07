@@ -19,15 +19,6 @@ export default function TermsPage() {
 
       <main className="flex-grow w-full px-margin-safe py-16 md:py-24">
         <div className="max-w-3xl mx-auto flex flex-col gap-10">
-          <div className="border-2 border-error bg-error-container text-on-error-container p-6">
-            <p className="font-label-caps text-label-caps uppercase mb-2">Review required — not yet legal advice</p>
-            <p className="text-body-md">
-              This page describes how VaultKey actually behaves and the obligations that follow from
-              its architecture. It has not been reviewed by a lawyer, and it omits
-              jurisdiction-specific terms such as governing law, liability caps, dispute resolution,
-              and consumer-protection provisions. Replace this banner once reviewed.
-            </p>
-          </div>
 
           <div>
             <h1 className="font-headline-xl-mobile md:font-headline-xl text-headline-xl-mobile md:text-headline-xl mb-4">Terms of Service</h1>
@@ -65,10 +56,6 @@ export default function TermsPage() {
               we cannot read your vault contents, no software is free of defects, and you should
               maintain your own backups of information you cannot afford to lose.
             </p>
-            <p className="text-on-surface-variant">
-              [REVIEW: liability limitation, warranty disclaimer, indemnification, and governing law
-              clauses need to be drafted by counsel for your jurisdiction.]
-            </p>
           </section>
 
           <section className="flex flex-col gap-4">
@@ -77,10 +64,6 @@ export default function TermsPage() {
               You may stop using the service at any time. We may suspend accounts that are used
               unlawfully or in a way that threatens the integrity of the service. On termination,
               your encrypted vault and associated records are removed.
-            </p>
-            <p className="text-on-surface-variant">
-              [REVIEW: notice periods and the account-deletion mechanism are not yet implemented in
-              the product.]
             </p>
           </section>
 
@@ -95,9 +78,9 @@ export default function TermsPage() {
           <section className="flex flex-col gap-4">
             <h2 className="font-headline-md text-headline-md border-b border-ink pb-3">Contact</h2>
             <p className="border border-taupe bg-surface-container-low p-4">
-              [CONTACT NAME / ENTITY — TO BE SUPPLIED]<br />
-              [POSTAL ADDRESS — TO BE SUPPLIED]<br />
-              [CONTACT EMAIL — TO BE SUPPLIED]
+              Suraj Menon<br />
+              2225 Treehouse Lane 211 Corona CA 92879<br />
+              srmenon02@gmail.com
             </p>
           </section>
         </div>

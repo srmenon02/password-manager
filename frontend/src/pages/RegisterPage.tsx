@@ -36,6 +36,7 @@ export default function RegisterPage() {
       password: '',
       confirmPassword: '',
     }
+    const fieldOrder = ['email', 'password', 'confirmPassword'] as const
 
     if (!email) {
       errors.email = 'Email is required'
@@ -56,7 +57,15 @@ export default function RegisterPage() {
     }
 
     setValidationErrors(errors)
-    return !errors.email && !errors.password && !errors.confirmPassword
+
+    // The form is noValidate so these messages actually reach the user; that also means
+    // nothing moves focus for us the way native constraint validation did.
+    const firstInvalid = fieldOrder.find((field) => errors[field])
+    if (firstInvalid) {
+      document.getElementById(firstInvalid)?.focus()
+      return false
+    }
+    return true
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -116,34 +125,37 @@ export default function RegisterPage() {
     <div className="bg-paper text-ink min-h-screen flex flex-col antialiased selection:bg-mint selection:text-ink">
       <Link
         to="/"
-        className="absolute top-0 left-0 px-gutter h-16 flex items-center font-headline-md text-headline-md font-bold text-primary tracking-tighter hover:opacity-75 transition-opacity z-10"
+        className="absolute top-0 left-0 px-margin-safe lg:px-gutter h-16 flex items-center font-headline-md text-headline-md font-bold text-primary tracking-tighter hover:opacity-75 transition-opacity z-10"
       >
         VaultKey
       </Link>
 
       <main className="flex-grow flex flex-col lg:flex-row relative">
         <div className="hidden lg:flex w-full lg:w-1/2 items-center justify-center bg-surface-container-highest p-margin-safe border-r border-taupe">
+          {/* Not a heading: it precedes the page's h1 in the DOM, and it is a statement
+              rather than a section title. */}
           <div className="max-w-md text-center">
-            <h3 className="font-headline-md text-headline-md font-bold text-ink mb-4 tracking-tighter">Create your secured vault.</h3>
-            <p className="font-body-lg text-body-lg text-on-surface-variant">
+            <p className="font-headline-md text-headline-md font-bold text-ink mb-4 tracking-tighter">Create your secured vault.</p>
+            <p className="font-body-lg text-body-lg text-on-surface-variant text-balance">
               Fortifies your logins, passwords, and digital identity.
             </p>
           </div>
         </div>
 
         <div className="w-full flex items-center p-margin-safe pt-24 lg:p-[120px] bg-paper lg:w-1/2">
-          <div className="w-full max-w-md ml-auto mr-auto lg:ml-0 lg:mr-auto">
-            <div className="mb-12">
-              <h2 className="font-headline-md text-headline-md font-bold text-ink mb-2">Create Account</h2>
-            </div>
+          <div className="w-full max-w-md mx-auto">
+            <h1 className="font-headline-md text-headline-md font-bold text-ink mb-12">Create Account</h1>
 
             {error && (
-              <div role="alert" className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
-                <p className="text-sm text-red-800">{error}</p>
+              <div
+                role="alert"
+                className="mb-6 border-2 border-error bg-error-container px-4 py-3 font-body-md text-body-md text-on-error-container"
+              >
+                {error}
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="flex flex-col gap-8">
+            <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-8">
               <div className="flex flex-col gap-2">
                 <label className="font-label-caps text-label-caps text-ink tracking-widest uppercase font-bold" htmlFor="email">Email Address</label>
                 <input
@@ -151,64 +163,95 @@ export default function RegisterPage() {
                   id="email"
                   placeholder="jane@example.com"
                   type="email"
+                  autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={loading}
                   required
+                  aria-invalid={validationErrors.email ? true : undefined}
+                  aria-describedby={validationErrors.email ? 'email-error' : undefined}
                 />
-                {validationErrors.email && <p className="text-sm text-red-700">{validationErrors.email}</p>}
+                {validationErrors.email && (
+                  <p id="email-error" role="alert" className="text-sm text-error">
+                    {validationErrors.email}
+                  </p>
+                )}
               </div>
 
               <div className="flex flex-col gap-2">
-                <label className="font-label-caps text-label-caps text-ink tracking-widest uppercase flex justify-between font-bold" htmlFor="password">
-                  <span>Master Password</span>
+                <label className="font-label-caps text-label-caps text-ink tracking-widest uppercase font-bold" htmlFor="password">
+                  Master Password
                 </label>
                 <div className="relative">
                   <input
-                    className="w-full border-x-0 border-t-0 border-b-2 border-solid border-taupe rounded-none bg-transparent py-3 pr-14 px-0 font-body-md text-ink focus:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                    className="w-full border-x-0 border-t-0 border-b-2 border-solid border-taupe rounded-none bg-transparent py-3 pr-20 px-0 font-body-md text-ink focus:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                     id="password"
                     placeholder="************"
                     type={showPassword ? 'text' : 'password'}
+                    autoComplete="new-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     disabled={loading}
                     minLength={12}
                     required
+                    aria-invalid={validationErrors.password ? true : undefined}
+                    aria-describedby={
+                      validationErrors.password ? 'password-hint password-error' : 'password-hint'
+                    }
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword((current) => !current)}
-                    className="absolute right-0 top-1/2 -translate-y-1/2 text-on-surface-variant font-body-md cursor-pointer hover:text-primary transition-colors duration-200"
+                    aria-pressed={showPassword}
+                    aria-label={`${showPassword ? 'Hide' : 'Show'} master password`}
+                    className="absolute right-0 top-1/2 -translate-y-1/2 min-h-11 px-2 inline-flex items-center text-on-surface-variant font-body-md cursor-pointer hover:text-primary transition-colors duration-200"
                   >
                     {showPassword ? 'Hide' : 'Show'}
                   </button>
                 </div>
-                <p className="font-body-md text-body-md text-on-surface-variant text-sm mt-1">Minimum 12 characters, mix of cases and symbols.</p>
-                {validationErrors.password && <p className="text-sm text-red-700">{validationErrors.password}</p>}
+                <p id="password-hint" className="text-sm text-on-surface-variant mt-1">
+                  Minimum 12 characters, mix of cases and symbols.
+                </p>
+                {validationErrors.password && (
+                  <p id="password-error" role="alert" className="text-sm text-error">
+                    {validationErrors.password}
+                  </p>
+                )}
               </div>
 
               <div className="flex flex-col gap-2">
                 <label className="font-label-caps text-label-caps text-ink tracking-widest uppercase font-bold" htmlFor="confirmPassword">Confirm Password</label>
                 <div className="relative">
                   <input
-                    className="w-full border-x-0 border-t-0 border-b-2 border-solid border-taupe rounded-none bg-transparent py-3 pr-14 px-0 font-body-md text-ink focus:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                    className="w-full border-x-0 border-t-0 border-b-2 border-solid border-taupe rounded-none bg-transparent py-3 pr-20 px-0 font-body-md text-ink focus:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                     id="confirmPassword"
                     placeholder="************"
                     type={showConfirmPassword ? 'text' : 'password'}
+                    autoComplete="new-password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     disabled={loading}
                     required
+                    aria-invalid={validationErrors.confirmPassword ? true : undefined}
+                    aria-describedby={
+                      validationErrors.confirmPassword ? 'confirmPassword-error' : undefined
+                    }
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword((current) => !current)}
-                    className="absolute right-0 top-1/2 -translate-y-1/2 text-on-surface-variant font-body-md cursor-pointer hover:text-primary transition-colors duration-200"
+                    aria-pressed={showConfirmPassword}
+                    aria-label={`${showConfirmPassword ? 'Hide' : 'Show'} password confirmation`}
+                    className="absolute right-0 top-1/2 -translate-y-1/2 min-h-11 px-2 inline-flex items-center text-on-surface-variant font-body-md cursor-pointer hover:text-primary transition-colors duration-200"
                   >
                     {showConfirmPassword ? 'Hide' : 'Show'}
                   </button>
                 </div>
-                {validationErrors.confirmPassword && <p className="text-sm text-red-700">{validationErrors.confirmPassword}</p>}
+                {validationErrors.confirmPassword && (
+                  <p id="confirmPassword-error" role="alert" className="text-sm text-error">
+                    {validationErrors.confirmPassword}
+                  </p>
+                )}
               </div>
 
               <div className="mt-8 flex flex-col gap-6">
@@ -218,7 +261,7 @@ export default function RegisterPage() {
                 <button className="relative w-full rounded-full p-[2px] transition-transform duration-300 hover:scale-105 active:scale-100 overflow-hidden group cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed" type="submit" disabled={loading}>
                   <div className="absolute inset-0 register-button-bg z-0"></div>
                   <div className="relative z-10 w-full bg-ink text-mint font-body-lg text-body-lg py-4 font-bold rounded-full text-center flex items-center justify-center">
-                    {loading ? 'Creating Account...' : 'Register'}
+                    {loading ? 'Creating Account…' : 'Register'}
                   </div>
                 </button>
                 <p className="text-sm text-on-surface-variant text-center">
