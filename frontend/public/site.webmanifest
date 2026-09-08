@@ -1,6 +1,6 @@
 {
-  "name": "VaultKey",
-  "short_name": "VaultKey",
+  "name": "cipher",
+  "short_name": "cipher",
   "description": "Zero-knowledge password manager. Encryption happens entirely in your browser.",
   "icons": [
     {

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-VaultKey — a zero-knowledge password manager. The server (backend) must never see or be able to reconstruct plaintext master passwords, vault contents, or private keys. All cryptography runs client-side in `frontend/src/crypto/`; the backend only ever stores/relays ciphertext, salts, and SRP verifiers.
+cipher — a zero-knowledge password manager. The server (backend) must never see or be able to reconstruct plaintext master passwords, vault contents, or private keys. All cryptography runs client-side in `frontend/src/crypto/`; the backend only ever stores/relays ciphertext, salts, and SRP verifiers.
 
 Note: `README.md`, `backend/README.md`, `.github/copilot-instructions.md`, and `setup/` describe an earlier/aspirational Node+Express+Prisma+Argon2id design. **The actual implementation is Python/FastAPI on the backend and PBKDF2 (not Argon2id) for key derivation** — trust the code in `backend/app/` and `frontend/src/crypto/` over those docs.
 

@@ -21,7 +21,7 @@ async def is_password_breached(password: str) -> bool:
     async with httpx.AsyncClient(timeout=10.0) as client:
         response = await client.get(
             HIBP_RANGE_URL.format(prefix=prefix),
-            headers={"User-Agent": "VaultKey-BreachChecker"},
+            headers={"User-Agent": "cipher-BreachChecker"},
         )
         response.raise_for_status()
 
@@ -36,7 +36,7 @@ async def get_hibp_matches_for_prefix(prefix: str) -> Dict[str, int]:
     async with httpx.AsyncClient(timeout=10.0) as client:
         response = await client.get(
             HIBP_RANGE_URL.format(prefix=prefix),
-            headers={"User-Agent": "VaultKey-BreachChecker"},
+            headers={"User-Agent": "cipher-BreachChecker"},
         )
         response.raise_for_status()
 

@@ -50,10 +50,10 @@ function generatePassword(length: number, useUpper: boolean, useLower: boolean, 
 }
 
 export default function GeneratorPage() {
-  usePageMeta('Password Generator · VaultKey', 'Generate strong, random passwords instantly.')
+  usePageMeta('Password Generator · cipher', 'Generate strong, random passwords instantly.')
   const navigate = useNavigate()
   const { clearVaultSession } = useVault()
-  const isLoggedIn = Boolean(localStorage.getItem('vaultkey_token'))
+  const isLoggedIn = Boolean(localStorage.getItem('cipher_token'))
   const [length, setLength] = useState(16)
   const [useUpper, setUseUpper] = useState(true)
   const [useLower, setUseLower] = useState(true)
@@ -99,7 +99,7 @@ export default function GeneratorPage() {
   return (
     <div className="bg-paper text-on-surface font-body-md min-h-screen flex flex-col selection:bg-mint selection:text-ink">
       <header className="w-full min-h-16 py-2 bg-paper flex flex-wrap gap-x-4 gap-y-2 justify-between items-center px-gutter max-w-full z-50 sticky top-0 border-b border-surface-dim">
-        <Link to="/" className="font-headline-md text-headline-md text-primary tracking-tighter hover:opacity-75 transition-opacity">VaultKey</Link>
+        <Link to="/" className="font-headline-md text-headline-md text-primary tracking-tighter hover:opacity-75 transition-opacity">cipher</Link>
         <nav className="flex flex-wrap gap-x-5 gap-y-1 md:gap-8 items-center font-body-md text-body-md">
           {isLoggedIn && <Link to="/vault" className="text-on-surface-variant hover:text-primary transition-colors duration-200">Vault</Link>}
           {isLoggedIn && <span className="text-ink border-b border-ink">Generator</span>}

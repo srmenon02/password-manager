@@ -13,9 +13,9 @@
  * and stays locked.
  */
 
-const DB_NAME = 'vaultkey'
+const DB_NAME = 'cipher'
 const STORE_NAME = 'session'
-const HANDLE_KEY = 'vaultkey_session_handle'
+const HANDLE_KEY = 'cipher_session_handle'
 
 // Rolling: every successful restore pushes it out again, so an actively used tab stays
 // unlocked and one left idle past this window has to unlock with the master password.

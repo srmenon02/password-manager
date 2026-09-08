@@ -4,14 +4,14 @@ import { usePageMeta } from '@/hooks/usePageMeta'
 function HomePage() {
   const navigate = useNavigate()
   usePageMeta(
-    'VaultKey · Zero-Knowledge Password Manager',
+    'cipher · Zero-Knowledge Password Manager',
     'Store and share your passwords with client-side, zero-knowledge encryption. Your master password never leaves your device.'
   )
 
   return (
     <div className="bg-paper text-on-surface font-body-md min-h-screen flex flex-col">
       <header className="w-full min-h-16 py-2 bg-paper flex flex-wrap gap-x-4 gap-y-2 justify-between items-center px-gutter max-w-full z-50 relative">
-        <div className="font-headline-md text-headline-md text-primary tracking-tighter">VaultKey</div>
+        <div className="font-headline-md text-headline-md text-primary tracking-tighter">cipher</div>
         <div className="flex items-center gap-6 md:gap-8">
           <nav className="flex flex-wrap items-center gap-x-5 gap-y-1 md:gap-8">
             <Link to="/login" className="text-on-surface-variant font-body-md cursor-pointer hover:text-primary transition-colors duration-200">Login</Link>
@@ -77,7 +77,7 @@ function HomePage() {
       <footer className="w-full border-t border-taupe px-gutter py-12 pb-28 md:pb-12">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-4 md:gap-8 justify-between items-start md:items-center">
           <p className="font-label-caps text-label-caps uppercase text-on-surface-variant">
-            VaultKey — encrypted in your browser
+            cipher — encrypted in your browser
           </p>
           <nav className="flex flex-wrap gap-x-6 gap-y-2">
             <Link to="/privacy" className="text-on-surface-variant font-body-md hover:text-primary transition-colors duration-200">Privacy</Link>

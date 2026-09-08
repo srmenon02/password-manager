@@ -10,7 +10,7 @@ export function initAnalytics() {
     return
   }
 
-  if (document.querySelector('script[data-vaultkey-analytics]')) {
+  if (document.querySelector('script[data-cipher-analytics]')) {
     return
   }
 
@@ -18,6 +18,6 @@ export function initAnalytics() {
   script.defer = true
   script.src = ANALYTICS_SRC
   script.dataset.domain = ANALYTICS_DOMAIN
-  script.dataset.vaultkeyAnalytics = 'true'
+  script.dataset.cipherAnalytics = 'true'
   document.head.appendChild(script)
 }

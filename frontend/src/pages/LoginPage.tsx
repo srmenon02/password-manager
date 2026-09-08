@@ -11,8 +11,8 @@ import { usePageMeta } from '@/hooks/usePageMeta'
 
 export default function LoginPage() {
   usePageMeta(
-    'Log In · VaultKey',
-    'Securely log in to your VaultKey vault using SRP authentication — your password is never sent to the server.'
+    'Log In · cipher',
+    'Securely log in to your cipher vault using SRP authentication — your password is never sent to the server.'
   )
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -50,7 +50,7 @@ export default function LoginPage() {
 
       srp.verifySession(AHex, clientSession, bytesToHex(base64ToBytes(verifyResponse.server_proof_m2)))
 
-      localStorage.setItem('vaultkey_token', verifyResponse.token)
+      localStorage.setItem('cipher_token', verifyResponse.token)
 
       const vaultResponse = await getVault(verifyResponse.token)
       const masterKey = await deriveKey(password, saltBytes)
@@ -81,7 +81,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex flex-col font-body-md overflow-x-hidden bg-paper text-ink">
       <header className="w-full min-h-16 py-2 bg-paper flex flex-wrap gap-x-4 gap-y-2 justify-between items-center px-gutter max-w-full z-50 sticky top-0">
-        <Link to="/" className="font-headline-md text-headline-md text-primary tracking-tighter hover:opacity-75 transition-opacity">VaultKey</Link>
+        <Link to="/" className="font-headline-md text-headline-md text-primary tracking-tighter hover:opacity-75 transition-opacity">cipher</Link>
         <nav className="flex flex-wrap items-center gap-x-5 gap-y-1 md:gap-8">
           <Link to="/vault" className="text-on-surface-variant font-body-md cursor-pointer hover:text-primary transition-colors duration-200">Vault</Link>
           <Link to="/generator" className="text-on-surface-variant font-body-md cursor-pointer hover:text-primary transition-colors duration-200">Generator</Link>
