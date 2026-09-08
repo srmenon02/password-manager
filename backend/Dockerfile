@@ -11,5 +11,8 @@ COPY alembic.ini .
 COPY alembic ./alembic
 COPY app ./app
 
+RUN useradd --create-home --uid 10001 appuser
+USER appuser
+
 EXPOSE 8080
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
