@@ -50,7 +50,7 @@ export default function LoginPage() {
 
       srp.verifySession(AHex, clientSession, bytesToHex(base64ToBytes(verifyResponse.server_proof_m2)))
 
-      localStorage.setItem('vaultkey_token', verifyResponse.token)
+      localStorage.setItem('cipher_token', verifyResponse.token)
 
       const vaultResponse = await getVault(verifyResponse.token)
       const masterKey = await deriveKey(password, saltBytes)

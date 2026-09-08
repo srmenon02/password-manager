@@ -73,7 +73,7 @@ export function VaultProvider({ children }: PropsWithChildren) {
 
     async function restore() {
       try {
-        const storedToken = localStorage.getItem('vaultkey_token')
+        const storedToken = localStorage.getItem('cipher_token')
         const storedKey = storedToken ? await restoreVaultKey() : null
         if (!storedToken || !storedKey) {
           return

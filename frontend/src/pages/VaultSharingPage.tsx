@@ -35,7 +35,7 @@ function VaultSharingPage() {
   function handleLogout() {
     // Scoped to this app's keys — localStorage.clear() would also wipe unrelated
     // data stored on this origin.
-    localStorage.removeItem('vaultkey_token')
+    localStorage.removeItem('cipher_token')
     clearVaultSession()
     navigate('/')
   }
@@ -88,7 +88,7 @@ function VaultSharingPage() {
   }, [vaultData])
 
   useEffect(() => {
-    const localToken = localStorage.getItem('vaultkey_token')
+    const localToken = localStorage.getItem('cipher_token')
     if (!localToken) {
       navigate('/login')
     }
@@ -140,7 +140,7 @@ function VaultSharingPage() {
     }
 
     const keyMaterial = sharedKeyMaterial
-    const activecipher = vaultKey
+    const activeVaultKey = vaultKey
     const recipientUserId = currentUserId
 
     let cancelled = false
@@ -152,7 +152,7 @@ function VaultSharingPage() {
         const recipientPrivateKey = await unprotectSharingPrivateKey(
           keyMaterial.encrypted_private_key,
           keyMaterial.encrypted_private_key_iv,
-          activecipher,
+          activeVaultKey,
         )
 
         const decrypted = await Promise.all(

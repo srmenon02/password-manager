@@ -109,7 +109,7 @@ export default function VaultPage() {
   const formRef = useRef<HTMLFormElement | null>(null)
 
   useEffect(() => {
-    const storedToken = localStorage.getItem('vaultkey_token')
+    const storedToken = localStorage.getItem('cipher_token')
     if (!storedToken) {
       navigate('/login')
     }
@@ -229,7 +229,7 @@ export default function VaultPage() {
   function handleLogout() {
     // Scoped to this app's keys — localStorage.clear() would also wipe unrelated
     // data stored on this origin.
-    localStorage.removeItem('vaultkey_token')
+    localStorage.removeItem('cipher_token')
     clearVaultSession()
     navigate('/')
   }

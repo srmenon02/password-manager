@@ -53,7 +53,7 @@ export default function GeneratorPage() {
   usePageMeta('Password Generator · cipher', 'Generate strong, random passwords instantly.')
   const navigate = useNavigate()
   const { clearVaultSession } = useVault()
-  const isLoggedIn = Boolean(localStorage.getItem('vaultkey_token'))
+  const isLoggedIn = Boolean(localStorage.getItem('cipher_token'))
   const [length, setLength] = useState(16)
   const [useUpper, setUseUpper] = useState(true)
   const [useLower, setUseLower] = useState(true)

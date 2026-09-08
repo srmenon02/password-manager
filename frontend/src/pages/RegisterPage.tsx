@@ -105,7 +105,7 @@ export default function RegisterPage() {
 
       const response = await registerUser(registerData)
 
-      localStorage.setItem('vaultkey_token', response.token)
+      localStorage.setItem('cipher_token', response.token)
 
       setVaultSession({
         vaultData: emptyVault,

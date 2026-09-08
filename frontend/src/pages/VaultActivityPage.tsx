@@ -44,7 +44,7 @@ function VaultActivityPage() {
   function handleLogout() {
     // Scoped to this app's keys — localStorage.clear() would also wipe unrelated
     // data stored on this origin.
-    localStorage.removeItem('vaultkey_token')
+    localStorage.removeItem('cipher_token')
     clearVaultSession()
     navigate('/')
   }
@@ -56,7 +56,7 @@ function VaultActivityPage() {
   const [auditVerifyLoading, setAuditVerifyLoading] = useState(false)
 
   useEffect(() => {
-    const localToken = localStorage.getItem('vaultkey_token')
+    const localToken = localStorage.getItem('cipher_token')
     if (!localToken) {
       navigate('/login')
     }
