@@ -3,14 +3,14 @@ import { usePageMeta } from '@/hooks/usePageMeta'
 
 export default function PrivacyPolicyPage() {
   usePageMeta(
-    'Privacy Policy · VaultKey',
-    'What VaultKey stores, what it cannot see, and how your encrypted vault data is handled.'
+    'Privacy Policy · cipher',
+    'What cipher stores, what it cannot see, and how your encrypted vault data is handled.'
   )
 
   return (
     <div className="bg-paper text-ink font-body-md min-h-screen flex flex-col">
       <header className="w-full min-h-16 py-2 bg-paper flex flex-wrap gap-x-4 gap-y-2 justify-between items-center px-gutter max-w-full z-50 sticky top-0 border-b border-surface-dim">
-        <Link to="/" className="font-headline-md text-headline-md text-primary tracking-tighter hover:opacity-75 transition-opacity">VaultKey</Link>
+        <Link to="/" className="font-headline-md text-headline-md text-primary tracking-tighter hover:opacity-75 transition-opacity">cipher</Link>
         <nav className="flex flex-wrap items-center gap-x-5 gap-y-1 md:gap-8">
           <Link to="/login" className="text-on-surface-variant font-body-md hover:text-primary transition-colors duration-200">Login</Link>
           <Link to="/terms" className="text-on-surface-variant font-body-md hover:text-primary transition-colors duration-200">Terms</Link>
@@ -23,7 +23,7 @@ export default function PrivacyPolicyPage() {
           <div>
             <h1 className="font-headline-xl-mobile md:font-headline-xl text-headline-xl-mobile md:text-headline-xl mb-4">Privacy Policy</h1>
             <p className="text-on-surface-variant">
-              VaultKey is a zero-knowledge password manager. Encryption and decryption happen in your
+              cipher is a zero-knowledge password manager. Encryption and decryption happen in your
               browser, and your master password is never transmitted to our servers.
             </p>
           </div>
@@ -63,7 +63,7 @@ export default function PrivacyPolicyPage() {
               comparison that determines the result happens entirely in your browser.
             </p>
             <p className="text-on-surface-variant">
-              No password hash is ever sent to or stored on the VaultKey server. When breach-scan
+              No password hash is ever sent to or stored on the cipher server. When breach-scan
               results are saved so they can be shown later, only the vault entry's identifier and a
               true/false verdict are recorded. Neither can be used to recover the password it refers
               to.

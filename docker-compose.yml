@@ -3,7 +3,7 @@ version: '3.8'
 services:
   postgres:
     image: postgres:15-alpine
-    container_name: vaultkey-postgres
+    container_name: cipher-postgres
     restart: unless-stopped
     environment:
       POSTGRES_DB: vaultkey
@@ -21,7 +21,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: vaultkey-redis
+    container_name: cipher-redis
     restart: unless-stopped
     ports:
       - "6379:6379"

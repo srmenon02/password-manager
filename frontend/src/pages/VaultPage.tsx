@@ -69,7 +69,7 @@ const rowAction =
   'vault-btn-secondary min-h-11 px-3 inline-flex items-center justify-center font-body-md text-body-md'
 
 export default function VaultPage() {
-  usePageMeta('Your Vault · VaultKey', 'View, add, and manage your encrypted credentials.')
+  usePageMeta('Your Vault · cipher', 'View, add, and manage your encrypted credentials.')
   const navigate = useNavigate()
   const location = useLocation()
   const {
@@ -345,7 +345,7 @@ export default function VaultPage() {
           to="/"
           className="font-headline-md text-headline-md text-primary tracking-tighter hover:opacity-75 transition-opacity"
         >
-          VaultKey
+          cipher
         </Link>
         <nav
           aria-label="Vault sections"

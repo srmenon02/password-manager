@@ -12,8 +12,8 @@ import { usePageMeta } from '@/hooks/usePageMeta'
 
 export default function RegisterPage() {
   usePageMeta(
-    'Create Account · VaultKey',
-    'Create your zero-knowledge VaultKey account. Your master password is derived and used entirely client-side.'
+    'Create Account · cipher',
+    'Create your zero-knowledge cipher account. Your master password is derived and used entirely client-side.'
   )
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -127,7 +127,7 @@ export default function RegisterPage() {
         to="/"
         className="absolute top-0 left-0 px-margin-safe lg:px-gutter h-16 flex items-center font-headline-md text-headline-md font-bold text-primary tracking-tighter hover:opacity-75 transition-opacity z-10"
       >
-        VaultKey
+        cipher
       </Link>
 
       <main className="flex-grow flex flex-col lg:flex-row relative">

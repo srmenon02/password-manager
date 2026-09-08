@@ -55,7 +55,7 @@ ensure_schema_compatibility()
 
 
 app = FastAPI(
-    title="VaultKey API",
+    title="cipher API",
     description="Zero-Knowledge Password Manager with Breach Intelligence",
     version="1.0.0",
 )
@@ -111,7 +111,7 @@ async def add_security_headers(request, call_next):
 async def health_check():
     return {
         "status": "ok",
-        "message": "VaultKey API is running",
+        "message": "cipher API is running",
         "environment": settings.ENVIRONMENT
     }
 

@@ -28,7 +28,7 @@ const rowAction =
 const messageBox = 'border-2 border-error bg-error-container p-4 text-on-error-container'
 
 function VaultSharingPage() {
-  usePageMeta('Sharing · VaultKey', 'Securely share credentials with end-to-end encrypted item sharing.')
+  usePageMeta('Sharing · cipher', 'Securely share credentials with end-to-end encrypted item sharing.')
   const navigate = useNavigate()
   const { vaultData, vaultKey, token, isUnlocked, clearVaultSession } = useVault()
 
@@ -140,7 +140,7 @@ function VaultSharingPage() {
     }
 
     const keyMaterial = sharedKeyMaterial
-    const activeVaultKey = vaultKey
+    const activecipher = vaultKey
     const recipientUserId = currentUserId
 
     let cancelled = false
@@ -152,7 +152,7 @@ function VaultSharingPage() {
         const recipientPrivateKey = await unprotectSharingPrivateKey(
           keyMaterial.encrypted_private_key,
           keyMaterial.encrypted_private_key_iv,
-          activeVaultKey,
+          activecipher,
         )
 
         const decrypted = await Promise.all(
@@ -369,7 +369,7 @@ function VaultSharingPage() {
   return (
     <div className="min-h-screen flex flex-col font-body-md text-body-md bg-paper text-ink">
       <header className="w-full min-h-16 py-2 bg-paper flex flex-wrap gap-x-4 gap-y-2 justify-between items-center px-gutter max-w-full z-50 sticky top-0 border-b border-surface-dim">
-        <Link to="/" className="font-headline-md text-headline-md text-primary tracking-tighter hover:opacity-75 transition-opacity">VaultKey</Link>
+        <Link to="/" className="font-headline-md text-headline-md text-primary tracking-tighter hover:opacity-75 transition-opacity">cipher</Link>
         <nav aria-label="Vault sections" className="flex flex-wrap gap-x-5 gap-y-1 md:gap-8 items-center font-body-md text-body-md">
           <Link to="/vault" className="text-on-surface-variant hover:text-primary transition-colors duration-200">Vault</Link>
           <Link to="/generator" className="text-on-surface-variant hover:text-primary transition-colors duration-200">Generator</Link>
