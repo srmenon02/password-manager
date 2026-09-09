@@ -134,3 +134,79 @@ jobs:
           name: frontend-dist
           path: frontend/dist
           retention-days: 7
+
+  # Rehearses the fly.io release sequence against a real Postgres. Everything below
+  # is invisible to the other jobs: they build no image, and backend tests run on
+  # SQLite, so migrations and the Dockerfile previously met their real dialect and
+  # runtime for the first time in production.
+  release-rehearsal:
+    needs: test
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: cipher
+          POSTGRES_PASSWORD: cipher
+          POSTGRES_DB: cipher
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DB_URL: postgresql://cipher:cipher@localhost:5432/cipher
+      JWT_SECRET: ci-release-rehearsal-not-a-real-secret
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build API image
+        run: docker build -t cipher-api:ci backend
+
+      # The image drops to a non-root user; a regression here is only visible
+      # by inspecting the built image.
+      - name: Image must not run as root
+        run: |
+          uid="$(docker run --rm cipher-api:ci id -u)"
+          echo "container uid: $uid"
+          if [ "$uid" = "0" ]; then echo "::error::image runs as root"; exit 1; fi
+
+      # Byte-for-byte the release_command in fly.toml.
+      - name: Migrate (fly.toml release_command)
+        run: |
+          docker run --rm --network host \
+            -e DATABASE_URL="$DB_URL" -e JWT_SECRET="$JWT_SECRET" \
+            cipher-api:ci alembic upgrade head
+
+      # Re-running must be a no-op; fly re-runs it on every deploy.
+      - name: Migrations are idempotent
+        run: |
+          docker run --rm --network host \
+            -e DATABASE_URL="$DB_URL" -e JWT_SECRET="$JWT_SECRET" \
+            cipher-api:ci alembic upgrade head
+
+      # Boots with ENVIRONMENT=production so the production CORS path is the one
+      # exercised. Import of app.main also runs ensure_schema_compatibility()
+      # against Postgres, which no other job does.
+      - name: Boot API and smoke-check /health
+        run: |
+          docker run -d --name cipher-ci --network host \
+            -e DATABASE_URL="$DB_URL" -e JWT_SECRET="$JWT_SECRET" \
+            -e ENVIRONMENT=production \
+            -e CORS_ORIGINS=https://cipher-vault.app \
+            cipher-api:ci
+          for _ in $(seq 1 30); do
+            if curl -fsS http://localhost:8080/health -o /tmp/health.json; then
+              cat /tmp/health.json
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::API never became healthy"
+          exit 1
+
+      - name: Container logs
+        if: always()
+        run: docker logs cipher-ci 2>&1 | tail -50 || true
