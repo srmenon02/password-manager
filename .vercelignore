@@ -1,0 +1,9 @@
+backend
+.venv
+venv
+setup
+docs
+.pytest_cache
+.impeccable
+frontend/stitch_serif_minimalist_vault 2
+frontend/stitch_serif_minimalist_vault 3

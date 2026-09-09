@@ -87,10 +87,17 @@ async def http_exception_handler(_request, exc: HTTPException):
 
 
 allowed_origins = [origin.strip() for origin in settings.CORS_ORIGINS.split(",") if origin.strip()]
+# The loopback regex is a dev convenience only. Left on in production it would pair
+# with allow_credentials to accept any port on the user's own machine.
+localhost_origin_regex = (
+    None
+    if settings.ENVIRONMENT == "production"
+    else r"https?://(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?"
+)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins or ["http://localhost:3000"],
-    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?",
+    allow_origin_regex=localhost_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

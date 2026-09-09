@@ -19,8 +19,8 @@ depends_on = None
 def upgrade() -> None:
     op.create_table(
         "audit_log_entries",
-        sa.Column("id", sa.String(length=36), nullable=False),
-        sa.Column("user_id", sa.String(length=36), nullable=False),
+        sa.Column("id", sa.UUID(), nullable=False),
+        sa.Column("user_id", sa.UUID(), nullable=False),
         sa.Column("action", sa.String(), nullable=False),
         sa.Column("metadata_json", sa.Text(), nullable=False, server_default="{}"),
         sa.Column("previous_hash", sa.String(length=64), nullable=True),
