@@ -1,0 +1,87 @@
+name: Deploy backend
+
+# Runs only after CI succeeds on main, so a deploy can never outrun the gate.
+# Kept out of ci.yml because that workflow is deliberately secret-free.
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Never let two deploys race; a queued deploy waits rather than cancelling.
+concurrency:
+  group: deploy-backend
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    environment: production
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      FLY_APP: cipher-api
+      API_URL: https://cipher-api.fly.dev
+    steps:
+      # Deploy the exact commit CI validated, not whatever main points at now.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - uses: superfly/flyctl-actions/setup-flyctl@1.5
+
+      # Captured before the deploy so a failed smoke check has somewhere to go
+      # back to; fly has no `releases rollback`, redeploying the image is the way.
+      - name: Record current image for rollback
+        id: prev
+        run: |
+          image="$(flyctl releases --app "$FLY_APP" --image --json \
+            | jq -r '[.[] | select(.Status == "complete")][0].ImageRef')"
+          if [ -z "$image" ] || [ "$image" = "null" ]; then
+            echo "::error::could not resolve current image ref"; exit 1
+          fi
+          echo "image=$image" >> "$GITHUB_OUTPUT"
+          echo "rollback target: $image"
+
+      - name: Deploy
+        run: flyctl deploy --remote-only
+
+      # fly reports the release complete once machines pass their own checks, but
+      # that does not prove the app answers over the public edge.
+      - name: Smoke-check /health
+        id: smoke
+        run: |
+          for _ in $(seq 1 30); do
+            if curl -fsS "$API_URL/health" | grep -q '"status":"ok"'; then
+              echo "healthy"; exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::/health never returned ok after deploy"; exit 1
+
+      # Verifies the audit fix is actually live: with ENVIRONMENT=production the
+      # loopback CORS regex must be off, so an arbitrary localhost port is refused.
+      - name: Assert loopback CORS is disabled in production
+        run: |
+          allowed="$(curl -s -i -X OPTIONS "$API_URL/api/auth/login" \
+            -H 'Origin: http://localhost:9999' \
+            -H 'Access-Control-Request-Method: POST' \
+            | grep -ci '^access-control-allow-origin' || true)"
+          if [ "$allowed" != "0" ]; then
+            echo "::error::production is echoing an arbitrary localhost origin"; exit 1
+          fi
+          echo "loopback origins refused"
+
+      - name: Roll back to previous image
+        if: failure() && steps.prev.outputs.image != ''
+        run: |
+          echo "::warning::deploy verification failed, rolling back to ${{ steps.prev.outputs.image }}"
+          flyctl deploy --image "${{ steps.prev.outputs.image }}" --remote-only
+          curl -fsS "$API_URL/health" || echo "::error::rollback did not restore health"
