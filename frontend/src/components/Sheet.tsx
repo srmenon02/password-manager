@@ -1,4 +1,5 @@
 import { type ReactNode, useEffect, useRef } from 'react'
+import { quietIconAction } from '@/components/controlStyles'
 
 type SheetProps = {
   open: boolean
@@ -50,7 +51,7 @@ export default function Sheet({ open, onClose, title, children }: SheetProps) {
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="w-11 h-11 shrink-0 inline-flex items-center justify-center border border-transparent text-on-surface-variant hover:border-ink hover:text-ink transition-colors"
+            className={`${quietIconAction} shrink-0`}
           >
             <span className="material-symbols-outlined" aria-hidden="true">close</span>
           </button>

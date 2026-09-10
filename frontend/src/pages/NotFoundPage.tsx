@@ -1,6 +1,11 @@
 import { useNavigate } from 'react-router-dom'
 import { usePageMeta } from '@/hooks/usePageMeta'
 import AppHeader from '@/components/AppHeader'
+import {
+  heroAction,
+  heroLabel,
+  outlinedAction,
+} from '@/components/controlStyles'
 
 function NotFoundPage() {
   usePageMeta('Page Not Found · cipher', "The page you're looking for doesn't exist.")
@@ -29,7 +34,6 @@ function NotFoundPage() {
 
         <div className="max-w-7xl mx-auto w-full">
           <div className="max-w-2xl md:ml-[15%] space-y-8 text-center md:text-left">
-            <span className="font-label-caps text-label-caps uppercase tracking-wider text-on-surface-variant">Error — 404</span>
             <h1 className="font-headline-xl-mobile md:font-headline-xl text-headline-xl-mobile md:text-headline-xl text-ink font-bold tracking-tighter leading-tight">
               This page slipped<br />out of the vault.
             </h1>
@@ -37,17 +41,14 @@ function NotFoundPage() {
               We couldn't find what you were looking for. It may have been moved, renamed, or never existed in the first place.
             </p>
             <div className="flex flex-wrap items-center gap-6 pt-4 justify-center md:justify-start">
-              <button
-                className="shine-button font-body-md px-8 py-4 uppercase tracking-wider"
-                onClick={() => navigate('/')}
-              >
-                Back to Safety
+              <button className={heroAction} onClick={() => navigate('/')}>
+                <span className={heroLabel}>Back to safety</span>
               </button>
               <button
-                className="vault-btn-secondary px-8 py-4 font-body-md uppercase tracking-wider"
+                className={`${outlinedAction} px-8`}
                 onClick={() => navigate(-1)}
               >
-                Go Back
+                Go back
               </button>
             </div>
           </div>

@@ -4,6 +4,12 @@ import { useVault } from '@/context/VaultContext'
 import { usePageMeta } from '@/hooks/usePageMeta'
 import AppHeader from '@/components/AppHeader'
 import { VAULT_NAV } from '@/components/navItems'
+import {
+  headerAction,
+  heroAction,
+  heroLabel,
+  inlineIconAction,
+} from '@/components/controlStyles'
 
 const UPPER = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 const LOWER = 'abcdefghijklmnopqrstuvwxyz'
@@ -108,7 +114,7 @@ export default function GeneratorPage() {
             <button
               type="button"
               onClick={handleLogout}
-              className="inline-flex items-center min-h-11 font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors duration-200"
+              className={headerAction}
             >
               Log Out
             </button>
@@ -121,7 +127,7 @@ export default function GeneratorPage() {
           <h1 className="font-headline-xl text-headline-xl-mobile md:text-headline-xl text-ink mb-6">Create something unguessable.</h1>
           <div className="bg-mint border-2 border-ink p-8 relative group hover:bg-sage transition-colors duration-500 ease-in-out cursor-pointer shadow-[8px_8px_0px_0px_rgba(25,9,34,1)]">
             <div className="flex justify-between items-start mb-16">
-              <button aria-label="Copy password" className="text-ink hover:text-primary transition-colors" onClick={copyPassword}>
+              <button aria-label="Copy password" className={inlineIconAction} onClick={copyPassword}>
                 <span className="material-symbols-outlined" aria-hidden="true">content_copy</span>
               </button>
               <span role="status" aria-live="polite" className="font-label-caps text-label-caps uppercase text-ink">
@@ -172,11 +178,8 @@ export default function GeneratorPage() {
                 <input checked={useSymbols} className="w-8 h-8 accent-primary cursor-pointer" type="checkbox" onChange={(event) => setUseSymbols(event.target.checked)} />
               </label>
             </div>
-            <button className="relative w-full mt-12 p-[2px] rounded-full overflow-hidden hover:scale-105 active:scale-100 transition-transform duration-300" onClick={regenerate}>
-              <div className="absolute inset-0 generator-button-bg"></div>
-              <div className="relative w-full h-full bg-ink text-paper py-4 rounded-full font-body-lg text-body-lg font-bold flex items-center justify-center">
-                Regenerate
-              </div>
+            <button type="button" onClick={regenerate} className={`${heroAction} mt-12 w-full`}>
+              <span className={heroLabel}>Regenerate</span>
             </button>
           </div>
         </div>

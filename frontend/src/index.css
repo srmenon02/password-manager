@@ -42,42 +42,43 @@ body {
   }
 }
 
-@keyframes shine {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
-}
-
-@keyframes generator-shine {
-  0% {
-    background-position: 0% 50%;
-  }
-  100% {
-    background-position: 200% 50%;
-  }
-}
-
-.login-button-bg {
+/* The single animated action in the product. One rotating conic ring around a square ink
+   face replaces the three near-identical pill gradients the auth and generator pages each
+   carried; the face stays square because nothing else in this world is rounded. */
+.btn-hero {
+  position: relative;
+  display: inline-block;
+  padding: 2px;
+  border: 0;
+  cursor: pointer;
   background: conic-gradient(from var(--bg-angle), #190922, #ded6d1, #bcf4de, #ded6d1, #190922);
-  animation: rotate-orbit 3s linear infinite;
+  animation: rotate-orbit 4s linear infinite;
+  transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.register-button-bg {
-  background: conic-gradient(from 180deg at 50% 50%, #bcf4de, #ded6d1, #190922, #bcf4de);
-  background-size: 200% 200%;
-  animation: shine 4s linear infinite;
+.btn-hero > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.75rem 2rem;
+  background-color: #190922;
+  color: #bcf4de;
 }
 
-.generator-button-bg {
-  background: conic-gradient(from 180deg at 50% 50%, #190922 0deg, #bcf4de 180deg, #ded6d1 270deg, #190922 360deg);
-  background-size: 200% 200%;
-  animation: generator-shine 3s linear infinite;
+.btn-hero:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.btn-hero:active:not(:disabled) {
+  transform: none;
+}
+
+.btn-hero:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  /* A ring still orbiting on a dead control reads as "working", so it stops. */
+  animation-play-state: paused;
 }
 
 .vault-btn-primary {
@@ -116,45 +117,6 @@ body {
   outline-offset: 2px;
   border-bottom-color: #336857;
   box-shadow: none;
-}
-
-.shine-button {
-  position: relative;
-  overflow: hidden;
-  background: #bcf4de;
-  color: #190922;
-  border: 1px solid #190922;
-  border-radius: 0;
-  z-index: 1;
-  transition: color 0.3s ease;
-}
-
-.shine-button::before {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: conic-gradient(from 0deg, transparent, #FFB7C3, #190922, transparent);
-  z-index: -1;
-  animation: rotateShine 4s linear infinite;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.shine-button:hover::before {
-  opacity: 1;
-}
-
-.shine-button:hover {
-  color: #190922;
-}
-
-@keyframes rotateShine {
-  100% {
-    transform: rotate(360deg);
-  }
 }
 
 /* Slide-over: <dialog> supplies the modal semantics, these rules give it the
@@ -297,13 +259,14 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .login-button-bg,
-  .register-button-bg,
-  .generator-button-bg,
-  .shine-button::before,
+  .btn-hero,
   .sheet-panel,
   .palette-panel,
   .toast-in {
     animation: none;
+  }
+
+  .btn-hero:hover:not(:disabled) {
+    transform: none;
   }
 }

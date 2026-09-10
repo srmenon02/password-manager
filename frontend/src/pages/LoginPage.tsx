@@ -9,6 +9,11 @@ import { decryptVault, base64ToArrayBuffer } from '@/crypto/vaultEncryption'
 import { useVault } from '@/context/VaultContext'
 import { usePageMeta } from '@/hooks/usePageMeta'
 import AppHeader from '@/components/AppHeader'
+import {
+  heroAction,
+  heroLabel,
+  inlineTextAction,
+} from '@/components/controlStyles'
 
 export default function LoginPage() {
   usePageMeta(
@@ -129,7 +134,7 @@ export default function LoginPage() {
                 required
               />
               <button
-                className="absolute right-0 bottom-2 text-on-surface-variant hover:text-ink transition-colors"
+                className={`${inlineTextAction} absolute right-0 bottom-0`}
                 type="button"
                 onClick={() => setShowPassword((current) => !current)}
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
@@ -138,11 +143,8 @@ export default function LoginPage() {
               </button>
             </div>
 
-            <button className="relative group p-[2px] rounded-full hover:scale-105 active:scale-100 transition-transform duration-200 mt-8 w-full cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed" type="submit" disabled={loading}>
-              <div className="absolute inset-0 rounded-full login-button-bg"></div>
-              <div className="relative bg-ink w-full py-4 rounded-full flex items-center justify-center h-full">
-                <span className="text-mint font-label-caps text-label-caps tracking-widest uppercase">{loading ? 'Unlocking...' : 'Unlock'}</span>
-              </div>
+            <button type="submit" disabled={loading} className={`${heroAction} mt-8 w-full`}>
+              <span className={heroLabel}>{loading ? 'Unlocking…' : 'Unlock'}</span>
             </button>
           </form>
         </div>

@@ -5,6 +5,10 @@ import { checkPasswordBreach, saveBreachResults } from '@/services/api'
 import { usePageMeta } from '@/hooks/usePageMeta'
 import AppHeader from '@/components/AppHeader'
 import { VAULT_NAV } from '@/components/navItems'
+import {
+  headerAction,
+  primaryAction,
+} from '@/components/controlStyles'
 
 function VaultBreachPage() {
   usePageMeta('Breach Monitor · cipher', 'Check your stored passwords against known data breaches.')
@@ -113,7 +117,7 @@ function VaultBreachPage() {
             <button
               type="button"
               onClick={() => navigate('/login')}
-              className="vault-btn-primary w-full min-h-11 px-4 font-body-md text-body-md font-bold"
+              className={`${primaryAction} w-full`}
             >
               Go to login
             </button>
@@ -132,7 +136,7 @@ function VaultBreachPage() {
           <button
             type="button"
             onClick={handleLogout}
-            className="inline-flex items-center min-h-11 font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors duration-200"
+            className={headerAction}
           >
             Log Out
           </button>
@@ -192,7 +196,7 @@ function VaultBreachPage() {
                 </div>
                 <button
                   type="button"
-                  className="shine-button min-h-11 px-6 py-3 uppercase shrink-0"
+                  className={`${primaryAction} shrink-0`}
                   aria-label={`Change password for ${entry.site}`}
                   onClick={() => navigate('/vault', { state: { editEntryId: entry.id } })}
                 >

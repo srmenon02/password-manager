@@ -1,4 +1,5 @@
 import type { Toast } from '@/hooks/useToasts'
+import { inlineIconAction } from '@/components/controlStyles'
 
 type ToastsProps = {
   toasts: Toast[]
@@ -27,7 +28,7 @@ export default function Toasts({ toasts, onDismiss }: ToastsProps) {
             type="button"
             onClick={() => onDismiss(toast.id)}
             aria-label="Dismiss"
-            className="-my-1 -mr-1 shrink-0 w-8 h-8 inline-flex items-center justify-center hover:opacity-70 transition-opacity"
+            className={`${inlineIconAction} -my-1 -mr-1 shrink-0 text-ink hover:text-primary`}
           >
             <span className="material-symbols-outlined text-[20px]" aria-hidden="true">close</span>
           </button>

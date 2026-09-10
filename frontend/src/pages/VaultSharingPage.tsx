@@ -26,8 +26,10 @@ import AppHeader from '@/components/AppHeader'
 import { VAULT_NAV } from '@/components/navItems'
 import { useToast } from '@/context/ToastContext'
 import {
+  destructiveAction,
   fieldInput,
   fieldLabel,
+  headerAction,
   outlinedAction,
   primaryAction,
   quietAction,
@@ -374,7 +376,7 @@ function VaultSharingPage() {
             <button
               type="button"
               onClick={() => navigate('/login')}
-              className="vault-btn-primary w-full min-h-11 px-4 font-body-md text-body-md font-bold"
+              className={`${primaryAction} w-full`}
             >
               Go to login
             </button>
@@ -393,7 +395,7 @@ function VaultSharingPage() {
           <button
             type="button"
             onClick={handleLogout}
-            className="inline-flex items-center min-h-11 font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors duration-200"
+            className={headerAction}
           >
             Log Out
           </button>
@@ -502,7 +504,7 @@ function VaultSharingPage() {
                             type="button"
                             onClick={() => handleDeleteSharedItem(item.share_id)}
                             disabled={isDeleting}
-                            className="min-h-11 px-4 inline-flex items-center justify-center border border-error bg-error text-on-error font-body-md text-body-md font-bold hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed"
+                            className={destructiveAction}
                           >
                             {isDeleting ? 'Removing…' : 'Remove'}
                           </button>

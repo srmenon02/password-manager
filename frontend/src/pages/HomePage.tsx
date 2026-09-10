@@ -1,6 +1,11 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { usePageMeta } from '@/hooks/usePageMeta'
 import AppHeader from '@/components/AppHeader'
+import {
+  heroAction,
+  heroLabel,
+  primaryAction,
+} from '@/components/controlStyles'
 
 function HomePage() {
   const navigate = useNavigate()
@@ -19,10 +24,10 @@ function HomePage() {
         action={
           <button
             type="button"
-            className="vault-btn-primary hidden md:inline-flex min-h-11 px-4 items-center font-body-md text-sm uppercase tracking-wider"
+            className={`${primaryAction} hidden md:inline-flex`}
             onClick={() => navigate('/register')}
           >
-            Get Started
+            Get started
           </button>
         }
       />
@@ -37,12 +42,8 @@ function HomePage() {
               Zero-knowledge encryption and authentication, ensuring your secrets are both safe and accessible.
             </p>
             <div className="pt-4">
-              <button
-                type="button"
-                className="shine-button font-body-md min-h-11 px-8 py-4 uppercase tracking-wider"
-                onClick={() => navigate('/register')}
-              >
-                Get Started
+              <button type="button" className={heroAction} onClick={() => navigate('/register')}>
+                <span className={heroLabel}>Get started</span>
               </button>
             </div>
           </div>
@@ -89,7 +90,7 @@ function HomePage() {
       <div className="md:hidden fixed bottom-0 inset-x-0 z-50 border-t border-ink bg-paper px-gutter py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
         <button
           type="button"
-          className="vault-btn-primary w-full min-h-11 px-4 py-3 font-body-md text-sm uppercase tracking-wider"
+          className={`${primaryAction} w-full`}
           onClick={() => navigate('/register')}
         >
           Create your vault

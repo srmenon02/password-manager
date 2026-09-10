@@ -6,6 +6,10 @@ import { useVault } from '@/context/VaultContext'
 import { usePageMeta } from '@/hooks/usePageMeta'
 import AppHeader from '@/components/AppHeader'
 import { VAULT_NAV } from '@/components/navItems'
+import {
+  headerAction,
+  primaryAction,
+} from '@/components/controlStyles'
 
 function formatAuditAction(action: string) {
   return action
@@ -127,7 +131,7 @@ function VaultActivityPage() {
             <button
               type="button"
               onClick={() => navigate('/login')}
-              className="vault-btn-primary w-full min-h-11 px-4 font-body-md text-body-md font-bold"
+              className={`${primaryAction} w-full`}
             >
               Go to login
             </button>
@@ -146,7 +150,7 @@ function VaultActivityPage() {
           <button
             type="button"
             onClick={handleLogout}
-            className="inline-flex items-center min-h-11 font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors duration-200"
+            className={headerAction}
           >
             Log Out
           </button>
@@ -159,7 +163,7 @@ function VaultActivityPage() {
             <h1 className="font-headline-xl-mobile md:font-headline-xl text-headline-xl-mobile md:text-headline-xl text-ink">Audit Log</h1>
             <p className="font-body-lg text-body-lg text-on-surface-variant max-w-md">Secure, hash-chained timeline.</p>
           </div>
-          <button type="button" className="shine-button px-6 py-4 uppercase w-full md:w-auto disabled:opacity-50" onClick={handleVerifyAuditLog} disabled={auditVerifyLoading || auditLoading}>
+          <button type="button" className={`${primaryAction} w-full md:w-auto`} onClick={handleVerifyAuditLog} disabled={auditVerifyLoading || auditLoading}>
             {auditVerifyLoading ? 'Verifying…' : 'Verify Chain Integrity'}
           </button>
         </section>

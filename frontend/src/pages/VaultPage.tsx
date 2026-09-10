@@ -14,13 +14,17 @@ import { useToast } from '@/context/ToastContext'
 import { passwordStrength, reusedPasswordSet } from '@/models/passwordStrength'
 import { paletteShortcutLabel } from '@/models/platform'
 import {
+  destructiveAction,
   fieldInput,
   fieldLabel,
+  headerAction,
+  inlineIconAction,
   outlinedAction,
   primaryAction,
   quietAction,
   quietDestructiveAction,
   quietIconAction,
+  solidAction,
 } from '@/components/controlStyles'
 
 const UPPER = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
@@ -379,7 +383,7 @@ export default function VaultPage() {
             </p>
             <button
               onClick={() => navigate('/login')}
-              className="vault-btn-primary w-full min-h-11 px-4 font-body-md text-body-md font-bold"
+              className={`${primaryAction} w-full`}
             >
               Go to login
             </button>
@@ -401,7 +405,7 @@ export default function VaultPage() {
           <button
             type="button"
             onClick={handleLogout}
-            className="inline-flex items-center min-h-11 font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors duration-200"
+            className={headerAction}
           >
             Log Out
           </button>
@@ -453,7 +457,7 @@ export default function VaultPage() {
           <button
             type="button"
             onClick={handleAddStart}
-            className="vault-btn-primary self-start md:self-end shrink-0 min-h-11 px-5 inline-flex items-center justify-center gap-2 font-body-md text-body-md font-bold"
+            className={`${primaryAction} self-start md:self-end shrink-0 gap-2`}
           >
             <span className="material-symbols-outlined text-[20px]" aria-hidden="true">add</span>
             Add credential
@@ -482,7 +486,7 @@ export default function VaultPage() {
                 type="button"
                 onClick={() => setSearchQuery('')}
                 aria-label="Clear search"
-                className="absolute right-0 top-1/2 -translate-y-1/2 w-8 h-8 inline-flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors"
+                className={`${inlineIconAction} absolute right-0 top-1/2 -translate-y-1/2`}
               >
                 <span className="material-symbols-outlined text-[20px]" aria-hidden="true">close</span>
               </button>
@@ -505,9 +509,7 @@ export default function VaultPage() {
               type="button"
               onClick={handleSaveVault}
               disabled={isSaving || !hasUnsavedChanges}
-              className={`min-h-11 px-5 inline-flex items-center justify-center font-body-md text-body-md font-bold border border-ink transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
-                hasUnsavedChanges ? 'bg-ink text-paper hover:bg-primary' : 'bg-transparent text-ink'
-              }`}
+              className={hasUnsavedChanges ? solidAction : outlinedAction}
             >
               {isSaving ? 'Saving…' : 'Save vault'}
             </button>
@@ -527,7 +529,7 @@ export default function VaultPage() {
               type="button"
               onClick={() => setError(null)}
               aria-label="Dismiss error"
-              className="shrink-0 -my-1 -mr-1 w-8 h-8 inline-flex items-center justify-center hover:opacity-70 transition-opacity"
+              className={`${inlineIconAction} shrink-0 -my-1 -mr-1 hover:text-on-error-container`}
             >
               <span className="material-symbols-outlined text-[20px]" aria-hidden="true">close</span>
             </button>
@@ -625,7 +627,7 @@ export default function VaultPage() {
                         <button
                           type="button"
                           onClick={() => handleConfirmDelete(entry.id)}
-                          className="min-h-11 px-4 inline-flex items-center justify-center border border-error bg-error text-on-error font-body-md text-body-md font-bold hover:opacity-90 transition-opacity"
+                          className={destructiveAction}
                         >
                           Delete
                         </button>
@@ -732,7 +734,7 @@ export default function VaultPage() {
                 <div className="flex gap-3 shrink-0">
                   <button
                     type="button"
-                    className={outlinedAction}
+                    className={quietAction}
                     aria-pressed={revealPassword}
                     onClick={() => setRevealPassword((prev) => !prev)}
                   >
@@ -740,7 +742,7 @@ export default function VaultPage() {
                   </button>
                   <button
                     type="button"
-                    className="vault-btn-primary min-h-11 px-4 inline-flex items-center justify-center font-body-md text-body-md font-bold whitespace-nowrap"
+                    className={`${primaryAction} whitespace-nowrap`}
                     onClick={() => {
                       setFormState((prev) => ({ ...prev, password: generatePassword(20) }))
                       setRevealPassword(true)
