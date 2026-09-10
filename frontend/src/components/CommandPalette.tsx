@@ -28,6 +28,12 @@ export default function CommandPalette() {
   const listRef = useRef<HTMLUListElement | null>(null)
 
   useEffect(() => {
+    // Only claim the shortcut where the palette can actually open, or the marketing and
+    // auth pages would swallow the browser's own Cmd/Ctrl+K and do nothing with it.
+    if (!isUnlocked) {
+      return
+    }
+
     function onKeyDown(event: KeyboardEvent) {
       if (event.key.toLowerCase() === 'k' && (event.metaKey || event.ctrlKey)) {
         event.preventDefault()
@@ -37,7 +43,7 @@ export default function CommandPalette() {
 
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [])
+  }, [isUnlocked])
 
   const entries = useMemo(() => vaultData?.entries ?? [], [vaultData])
 
