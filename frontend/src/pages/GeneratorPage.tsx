@@ -1,7 +1,15 @@
 import { useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useVault } from '@/context/VaultContext'
 import { usePageMeta } from '@/hooks/usePageMeta'
+import AppHeader from '@/components/AppHeader'
+import { VAULT_NAV } from '@/components/navItems'
+import {
+  headerAction,
+  heroAction,
+  heroLabel,
+  inlineIconAction,
+} from '@/components/controlStyles'
 
 const UPPER = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 const LOWER = 'abcdefghijklmnopqrstuvwxyz'
@@ -98,26 +106,28 @@ export default function GeneratorPage() {
 
   return (
     <div className="bg-paper text-on-surface font-body-md min-h-screen flex flex-col selection:bg-mint selection:text-ink">
-      <header className="w-full min-h-16 py-2 bg-paper flex flex-wrap gap-x-4 gap-y-2 justify-between items-center px-gutter max-w-full z-50 sticky top-0 border-b border-surface-dim">
-        <Link to="/" className="font-headline-md text-headline-md text-primary tracking-tighter hover:opacity-75 transition-opacity">cipher</Link>
-        <nav className="flex flex-wrap gap-x-5 gap-y-1 md:gap-8 items-center font-body-md text-body-md">
-          {isLoggedIn && <Link to="/vault" className="text-on-surface-variant hover:text-primary transition-colors duration-200">Vault</Link>}
-          {isLoggedIn && <span className="text-ink border-b border-ink">Generator</span>}
-          {isLoggedIn && <Link to="/vault/sharing" className="text-on-surface-variant hover:text-primary transition-colors duration-200">Sharing</Link>}
-          {isLoggedIn && <Link to="/vault/activity" className="text-on-surface-variant hover:text-primary transition-colors duration-200">Activity</Link>}
-          {isLoggedIn && <Link to="/vault/breach" className="text-on-surface-variant hover:text-primary transition-colors duration-200">Breach</Link>}
-        </nav>
-        <div className="flex gap-4 items-center">
-          {isLoggedIn && <button type="button" onClick={handleLogout} className="text-on-surface-variant hover:text-primary transition-colors duration-200">Log Out</button>}
-        </div>
-      </header>
+      <AppHeader
+        nav={isLoggedIn ? VAULT_NAV : [{ label: 'Login', to: '/login' }]}
+        navLabel={isLoggedIn ? 'Vault sections' : 'Main'}
+        action={
+          isLoggedIn ? (
+            <button
+              type="button"
+              onClick={handleLogout}
+              className={headerAction}
+            >
+              Log Out
+            </button>
+          ) : undefined
+        }
+      />
 
       <main className="flex-grow flex flex-col md:flex-row px-margin-safe py-12 md:py-24 gap-12 md:gap-24 relative overflow-hidden">
         <div className="w-full md:w-1/2 flex flex-col z-10 md:mt-hero-offset">
           <h1 className="font-headline-xl text-headline-xl-mobile md:text-headline-xl text-ink mb-6">Create something unguessable.</h1>
           <div className="bg-mint border-2 border-ink p-8 relative group hover:bg-sage transition-colors duration-500 ease-in-out cursor-pointer shadow-[8px_8px_0px_0px_rgba(25,9,34,1)]">
             <div className="flex justify-between items-start mb-16">
-              <button aria-label="Copy password" className="text-ink hover:text-primary transition-colors" onClick={copyPassword}>
+              <button aria-label="Copy password" className={inlineIconAction} onClick={copyPassword}>
                 <span className="material-symbols-outlined" aria-hidden="true">content_copy</span>
               </button>
               <span role="status" aria-live="polite" className="font-label-caps text-label-caps uppercase text-ink">
@@ -168,11 +178,8 @@ export default function GeneratorPage() {
                 <input checked={useSymbols} className="w-8 h-8 accent-primary cursor-pointer" type="checkbox" onChange={(event) => setUseSymbols(event.target.checked)} />
               </label>
             </div>
-            <button className="relative w-full mt-12 p-[2px] rounded-full overflow-hidden hover:scale-105 active:scale-100 transition-transform duration-300" onClick={regenerate}>
-              <div className="absolute inset-0 generator-button-bg"></div>
-              <div className="relative w-full h-full bg-ink text-paper py-4 rounded-full font-body-lg text-body-lg font-bold flex items-center justify-center">
-                Regenerate
-              </div>
+            <button type="button" onClick={regenerate} className={`${heroAction} mt-12 w-full`}>
+              <span className={heroLabel}>Regenerate</span>
             </button>
           </div>
         </div>

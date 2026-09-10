@@ -1,9 +1,15 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import type { AuditLogEntry, AuditLogVerifyResponse } from '@shared/types'
 import { getAuditLog, verifyAuditLog } from '@/services/api'
 import { useVault } from '@/context/VaultContext'
 import { usePageMeta } from '@/hooks/usePageMeta'
+import AppHeader from '@/components/AppHeader'
+import { VAULT_NAV } from '@/components/navItems'
+import {
+  headerAction,
+  primaryAction,
+} from '@/components/controlStyles'
 
 function formatAuditAction(action: string) {
   return action
@@ -114,19 +120,22 @@ function VaultActivityPage() {
 
   if (!isUnlocked) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-paper px-gutter selection:bg-mint selection:text-ink">
-        <div className="w-full max-w-md bg-surface-container-lowest border-2 border-ink p-8 text-center shadow-[8px_8px_0px_0px_theme(colors.ink)]">
-          <h1 className="font-headline-md text-headline-md text-ink mb-3">Vault locked</h1>
-          <p className="font-body-md text-body-md text-on-surface-variant mb-8">
-            Your vault is encrypted. Sign in with your master password to inspect your activity chain.
-          </p>
-          <button
-            type="button"
-            onClick={() => navigate('/login')}
-            className="vault-btn-primary w-full min-h-11 px-4 font-body-md text-body-md font-bold"
-          >
-            Go to login
-          </button>
+      <div className="min-h-screen flex flex-col bg-paper selection:bg-mint selection:text-ink">
+        <AppHeader />
+        <div className="flex-grow flex items-center justify-center px-gutter py-16">
+          <div className="w-full max-w-md bg-surface-container-lowest border-2 border-ink p-8 text-center shadow-[8px_8px_0px_0px_theme(colors.ink)]">
+            <h1 className="font-headline-md text-headline-md text-ink mb-3">Vault locked</h1>
+            <p className="font-body-md text-body-md text-on-surface-variant mb-8">
+              Your vault is encrypted. Sign in with your master password to inspect your activity chain.
+            </p>
+            <button
+              type="button"
+              onClick={() => navigate('/login')}
+              className={`${primaryAction} w-full`}
+            >
+              Go to login
+            </button>
+          </div>
         </div>
       </div>
     )
@@ -134,19 +143,19 @@ function VaultActivityPage() {
 
   return (
     <div className="min-h-screen flex flex-col font-body-md text-body-md bg-paper text-ink">
-      <header className="w-full min-h-16 py-2 bg-paper flex flex-wrap gap-x-4 gap-y-2 justify-between items-center px-gutter max-w-full z-50 sticky top-0 border-b border-surface-dim">
-        <Link to="/" className="font-headline-md text-headline-md text-primary tracking-tighter hover:opacity-75 transition-opacity">cipher</Link>
-        <nav aria-label="Vault sections" className="flex flex-wrap gap-x-5 gap-y-1 md:gap-8 items-center font-body-md text-body-md">
-          <Link to="/vault" className="text-on-surface-variant hover:text-primary transition-colors duration-200">Vault</Link>
-          <Link to="/generator" className="text-on-surface-variant hover:text-primary transition-colors duration-200">Generator</Link>
-          <Link to="/vault/sharing" className="text-on-surface-variant hover:text-primary transition-colors duration-200">Sharing</Link>
-          <span aria-current="page" className="text-ink border-b border-ink">Activity</span>
-          <Link to="/vault/breach" className="text-on-surface-variant hover:text-primary transition-colors duration-200">Breach</Link>
-        </nav>
-        <div className="flex gap-4 items-center">
-          <button type="button" onClick={handleLogout} className="text-on-surface-variant hover:text-primary transition-colors duration-200">Log Out</button>
-        </div>
-      </header>
+      <AppHeader
+        nav={VAULT_NAV}
+        navLabel="Vault sections"
+        action={
+          <button
+            type="button"
+            onClick={handleLogout}
+            className={headerAction}
+          >
+            Log Out
+          </button>
+        }
+      />
 
       <main className="w-full px-margin-safe py-16 md:py-hero-offset max-w-7xl mx-auto flex flex-col gap-16">
         <section className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8 pl-0 md:pl-[15%]">
@@ -154,7 +163,7 @@ function VaultActivityPage() {
             <h1 className="font-headline-xl-mobile md:font-headline-xl text-headline-xl-mobile md:text-headline-xl text-ink">Audit Log</h1>
             <p className="font-body-lg text-body-lg text-on-surface-variant max-w-md">Secure, hash-chained timeline.</p>
           </div>
-          <button type="button" className="shine-button px-6 py-4 uppercase w-full md:w-auto disabled:opacity-50" onClick={handleVerifyAuditLog} disabled={auditVerifyLoading || auditLoading}>
+          <button type="button" className={`${primaryAction} w-full md:w-auto`} onClick={handleVerifyAuditLog} disabled={auditVerifyLoading || auditLoading}>
             {auditVerifyLoading ? 'Verifying…' : 'Verify Chain Integrity'}
           </button>
         </section>

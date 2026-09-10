@@ -9,6 +9,12 @@ import { registerUser } from '@/services/api'
 import { useVault } from '@/context/VaultContext'
 import { createEmptyVault } from '@/models/vault'
 import { usePageMeta } from '@/hooks/usePageMeta'
+import AppHeader from '@/components/AppHeader'
+import {
+  heroAction,
+  heroLabel,
+  inlineTextAction,
+} from '@/components/controlStyles'
 
 export default function RegisterPage() {
   usePageMeta(
@@ -123,12 +129,12 @@ export default function RegisterPage() {
 
   return (
     <div className="bg-paper text-ink min-h-screen flex flex-col antialiased selection:bg-mint selection:text-ink">
-      <Link
-        to="/"
-        className="absolute top-0 left-0 px-margin-safe lg:px-gutter h-16 flex items-center font-headline-md text-headline-md font-bold text-primary tracking-tighter hover:opacity-75 transition-opacity z-10"
-      >
-        cipher
-      </Link>
+      <AppHeader
+        nav={[
+          { label: 'Login', to: '/login' },
+          { label: 'Generator', to: '/generator' },
+        ]}
+      />
 
       <main className="flex-grow flex flex-col lg:flex-row relative">
         <div className="hidden lg:flex w-full lg:w-1/2 items-center justify-center bg-surface-container-highest p-margin-safe border-r border-taupe">
@@ -142,7 +148,7 @@ export default function RegisterPage() {
           </div>
         </div>
 
-        <div className="w-full flex items-center p-margin-safe pt-24 lg:p-[120px] bg-paper lg:w-1/2">
+        <div className="w-full flex items-center p-margin-safe pt-12 lg:p-[120px] bg-paper lg:w-1/2">
           <div className="w-full max-w-md mx-auto">
             <h1 className="font-headline-md text-headline-md font-bold text-ink mb-12">Create Account</h1>
 
@@ -204,7 +210,7 @@ export default function RegisterPage() {
                     onClick={() => setShowPassword((current) => !current)}
                     aria-pressed={showPassword}
                     aria-label={`${showPassword ? 'Hide' : 'Show'} master password`}
-                    className="absolute right-0 top-1/2 -translate-y-1/2 min-h-11 px-2 inline-flex items-center text-on-surface-variant font-body-md cursor-pointer hover:text-primary transition-colors duration-200"
+                    className={`${inlineTextAction} absolute right-0 top-1/2 -translate-y-1/2`}
                   >
                     {showPassword ? 'Hide' : 'Show'}
                   </button>
@@ -242,7 +248,7 @@ export default function RegisterPage() {
                     onClick={() => setShowConfirmPassword((current) => !current)}
                     aria-pressed={showConfirmPassword}
                     aria-label={`${showConfirmPassword ? 'Hide' : 'Show'} password confirmation`}
-                    className="absolute right-0 top-1/2 -translate-y-1/2 min-h-11 px-2 inline-flex items-center text-on-surface-variant font-body-md cursor-pointer hover:text-primary transition-colors duration-200"
+                    className={`${inlineTextAction} absolute right-0 top-1/2 -translate-y-1/2`}
                   >
                     {showConfirmPassword ? 'Hide' : 'Show'}
                   </button>
@@ -258,11 +264,8 @@ export default function RegisterPage() {
                 <p className="text-sm text-on-surface-variant text-center">
                   Master passwords cannot be reset.
                 </p>
-                <button className="relative w-full rounded-full p-[2px] transition-transform duration-300 hover:scale-105 active:scale-100 overflow-hidden group cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed" type="submit" disabled={loading}>
-                  <div className="absolute inset-0 register-button-bg z-0"></div>
-                  <div className="relative z-10 w-full bg-ink text-mint font-body-lg text-body-lg py-4 font-bold rounded-full text-center flex items-center justify-center">
-                    {loading ? 'Creating Account…' : 'Register'}
-                  </div>
+                <button type="submit" disabled={loading} className={`${heroAction} w-full`}>
+                  <span className={heroLabel}>{loading ? 'Creating account…' : 'Register'}</span>
                 </button>
                 <p className="text-sm text-on-surface-variant text-center">
                   Already have an account?{' '}
