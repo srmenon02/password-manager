@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useVault } from '@/context/VaultContext'
 import type { SharedInboxItem } from '@shared/types'
 import {
@@ -21,6 +21,8 @@ import {
   unprotectSharingPrivateKey,
 } from '@/crypto/sharingProtocol'
 import { usePageMeta } from '@/hooks/usePageMeta'
+import AppHeader from '@/components/AppHeader'
+import { VAULT_NAV } from '@/components/navItems'
 
 const rowAction =
   'vault-btn-secondary min-h-11 px-4 inline-flex items-center justify-center font-body-md text-body-md'
@@ -348,19 +350,22 @@ function VaultSharingPage() {
 
   if (!isUnlocked || !vaultData) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-paper px-gutter selection:bg-mint selection:text-ink">
-        <div className="w-full max-w-md bg-surface-container-lowest border-2 border-ink p-8 text-center shadow-[8px_8px_0px_0px_theme(colors.ink)]">
-          <h1 className="font-headline-md text-headline-md text-ink mb-3">Vault locked</h1>
-          <p className="font-body-md text-body-md text-on-surface-variant mb-8">
-            Your vault is encrypted. Sign in with your master password to decrypt it in this browser.
-          </p>
-          <button
-            type="button"
-            onClick={() => navigate('/login')}
-            className="vault-btn-primary w-full min-h-11 px-4 font-body-md text-body-md font-bold"
-          >
-            Go to login
-          </button>
+      <div className="min-h-screen flex flex-col bg-paper selection:bg-mint selection:text-ink">
+        <AppHeader />
+        <div className="flex-grow flex items-center justify-center px-gutter py-16">
+          <div className="w-full max-w-md bg-surface-container-lowest border-2 border-ink p-8 text-center shadow-[8px_8px_0px_0px_theme(colors.ink)]">
+            <h1 className="font-headline-md text-headline-md text-ink mb-3">Vault locked</h1>
+            <p className="font-body-md text-body-md text-on-surface-variant mb-8">
+              Your vault is encrypted. Sign in with your master password to decrypt it in this browser.
+            </p>
+            <button
+              type="button"
+              onClick={() => navigate('/login')}
+              className="vault-btn-primary w-full min-h-11 px-4 font-body-md text-body-md font-bold"
+            >
+              Go to login
+            </button>
+          </div>
         </div>
       </div>
     )
@@ -368,19 +373,19 @@ function VaultSharingPage() {
 
   return (
     <div className="min-h-screen flex flex-col font-body-md text-body-md bg-paper text-ink">
-      <header className="w-full min-h-16 py-2 bg-paper flex flex-wrap gap-x-4 gap-y-2 justify-between items-center px-gutter max-w-full z-50 sticky top-0 border-b border-surface-dim">
-        <Link to="/" className="font-headline-md text-headline-md text-primary tracking-tighter hover:opacity-75 transition-opacity">cipher</Link>
-        <nav aria-label="Vault sections" className="flex flex-wrap gap-x-5 gap-y-1 md:gap-8 items-center font-body-md text-body-md">
-          <Link to="/vault" className="text-on-surface-variant hover:text-primary transition-colors duration-200">Vault</Link>
-          <Link to="/generator" className="text-on-surface-variant hover:text-primary transition-colors duration-200">Generator</Link>
-          <span aria-current="page" className="text-ink border-b border-ink">Sharing</span>
-          <Link to="/vault/activity" className="text-on-surface-variant hover:text-primary transition-colors duration-200">Activity</Link>
-          <Link to="/vault/breach" className="text-on-surface-variant hover:text-primary transition-colors duration-200">Breach</Link>
-        </nav>
-        <div className="flex gap-4 items-center">
-          <button type="button" onClick={handleLogout} className="text-on-surface-variant hover:text-primary transition-colors duration-200">Log Out</button>
-        </div>
-      </header>
+      <AppHeader
+        nav={VAULT_NAV}
+        navLabel="Vault sections"
+        action={
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="inline-flex items-center min-h-11 font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors duration-200"
+          >
+            Log Out
+          </button>
+        }
+      />
 
       <main className="flex-grow px-margin-safe py-12 md:py-hero-offset max-w-7xl mx-auto w-full">
         <section className="mb-16 md:ml-[15%]">

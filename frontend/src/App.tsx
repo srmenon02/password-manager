@@ -11,6 +11,7 @@ import PrivacyPolicyPage from './pages/PrivacyPolicyPage'
 import TermsPage from './pages/TermsPage'
 import NotFoundPage from './pages/NotFoundPage'
 import { VaultProvider, useVault } from '@/context/VaultContext'
+import AppHeader from '@/components/AppHeader'
 
 // Holds the vault routes for the one tick it takes to rehydrate a reloaded session, so a
 // refresh does not flash "Vault locked" on its way back to an unlocked vault.
@@ -22,10 +23,13 @@ function RestoringVaultSession() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-paper px-gutter">
-      <p role="status" className="font-body-md text-body-md text-on-surface-variant">
-        Unlocking your vault…
-      </p>
+    <div className="min-h-screen flex flex-col bg-paper">
+      <AppHeader />
+      <div className="flex-grow flex items-center justify-center px-gutter py-16">
+        <p role="status" className="font-body-md text-body-md text-on-surface-variant">
+          Unlocking your vault…
+        </p>
+      </div>
     </div>
   )
 }

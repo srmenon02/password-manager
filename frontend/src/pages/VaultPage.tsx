@@ -1,10 +1,12 @@
 import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import type { VaultEntry } from '@shared/types'
 import { useVault } from '@/context/VaultContext'
 import type { VaultEntryInput } from '@/models/vault'
 import { checkPasswordBreach } from '@/services/api'
 import { usePageMeta } from '@/hooks/usePageMeta'
+import AppHeader from '@/components/AppHeader'
+import { VAULT_NAV } from '@/components/navItems'
 
 const UPPER = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 const LOWER = 'abcdefghijklmnopqrstuvwxyz'
@@ -318,18 +320,21 @@ export default function VaultPage() {
 
   if (!isUnlocked || !vaultData) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-paper px-gutter selection:bg-mint selection:text-ink">
-        <div className="w-full max-w-md bg-surface-container-lowest border-2 border-ink p-8 text-center shadow-[8px_8px_0px_0px_theme(colors.ink)]">
-          <h1 className="font-headline-md text-headline-md text-ink mb-3">Vault locked</h1>
-          <p className="font-body-md text-body-md text-on-surface-variant mb-8">
-            Your vault is encrypted. Sign in with your master password to decrypt it in this browser.
-          </p>
-          <button
-            onClick={() => navigate('/login')}
-            className="vault-btn-primary w-full min-h-11 px-4 font-body-md text-body-md font-bold"
-          >
-            Go to login
-          </button>
+      <div className="min-h-screen flex flex-col bg-paper selection:bg-mint selection:text-ink">
+        <AppHeader />
+        <div className="flex-grow flex items-center justify-center px-gutter py-16">
+          <div className="w-full max-w-md bg-surface-container-lowest border-2 border-ink p-8 text-center shadow-[8px_8px_0px_0px_theme(colors.ink)]">
+            <h1 className="font-headline-md text-headline-md text-ink mb-3">Vault locked</h1>
+            <p className="font-body-md text-body-md text-on-surface-variant mb-8">
+              Your vault is encrypted. Sign in with your master password to decrypt it in this browser.
+            </p>
+            <button
+              onClick={() => navigate('/login')}
+              className="vault-btn-primary w-full min-h-11 px-4 font-body-md text-body-md font-bold"
+            >
+              Go to login
+            </button>
+          </div>
         </div>
       </div>
     )
@@ -340,33 +345,19 @@ export default function VaultPage() {
 
   return (
     <div className="min-h-screen flex flex-col font-body-md text-body-md bg-paper text-ink selection:bg-mint selection:text-ink">
-      <header className="w-full py-3 bg-paper flex flex-wrap gap-x-4 gap-y-3 justify-between items-center px-gutter z-50 sticky top-0 border-b border-surface-dim">
-        <Link
-          to="/"
-          className="font-headline-md text-headline-md text-primary tracking-tighter hover:opacity-75 transition-opacity"
-        >
-          cipher
-        </Link>
-        <nav
-          aria-label="Vault sections"
-          className="order-last w-full md:order-none md:w-auto flex flex-wrap gap-x-5 gap-y-1 md:gap-8 items-center justify-center font-body-md text-body-md"
-        >
-          <span aria-current="page" className="text-ink border-b-2 border-ink">
-            Vault
-          </span>
-          <Link to="/generator" className="text-on-surface-variant hover:text-primary transition-colors duration-200">Generator</Link>
-          <Link to="/vault/sharing" className="text-on-surface-variant hover:text-primary transition-colors duration-200">Sharing</Link>
-          <Link to="/vault/activity" className="text-on-surface-variant hover:text-primary transition-colors duration-200">Activity</Link>
-          <Link to="/vault/breach" className="text-on-surface-variant hover:text-primary transition-colors duration-200">Breach</Link>
-        </nav>
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="text-on-surface-variant hover:text-primary transition-colors duration-200"
-        >
-          Log Out
-        </button>
-      </header>
+      <AppHeader
+        nav={VAULT_NAV}
+        navLabel="Vault sections"
+        action={
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="inline-flex items-center min-h-11 font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors duration-200"
+          >
+            Log Out
+          </button>
+        }
+      />
 
       <main className="flex-grow w-full max-w-5xl mx-auto px-margin-safe pt-12 md:pt-16 pb-24">
         <div className="text-center mb-10 md:mb-12">

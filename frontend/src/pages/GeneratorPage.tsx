@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useVault } from '@/context/VaultContext'
 import { usePageMeta } from '@/hooks/usePageMeta'
+import AppHeader from '@/components/AppHeader'
+import { VAULT_NAV } from '@/components/navItems'
 
 const UPPER = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 const LOWER = 'abcdefghijklmnopqrstuvwxyz'
@@ -98,19 +100,21 @@ export default function GeneratorPage() {
 
   return (
     <div className="bg-paper text-on-surface font-body-md min-h-screen flex flex-col selection:bg-mint selection:text-ink">
-      <header className="w-full min-h-16 py-2 bg-paper flex flex-wrap gap-x-4 gap-y-2 justify-between items-center px-gutter max-w-full z-50 sticky top-0 border-b border-surface-dim">
-        <Link to="/" className="font-headline-md text-headline-md text-primary tracking-tighter hover:opacity-75 transition-opacity">cipher</Link>
-        <nav className="flex flex-wrap gap-x-5 gap-y-1 md:gap-8 items-center font-body-md text-body-md">
-          {isLoggedIn && <Link to="/vault" className="text-on-surface-variant hover:text-primary transition-colors duration-200">Vault</Link>}
-          {isLoggedIn && <span className="text-ink border-b border-ink">Generator</span>}
-          {isLoggedIn && <Link to="/vault/sharing" className="text-on-surface-variant hover:text-primary transition-colors duration-200">Sharing</Link>}
-          {isLoggedIn && <Link to="/vault/activity" className="text-on-surface-variant hover:text-primary transition-colors duration-200">Activity</Link>}
-          {isLoggedIn && <Link to="/vault/breach" className="text-on-surface-variant hover:text-primary transition-colors duration-200">Breach</Link>}
-        </nav>
-        <div className="flex gap-4 items-center">
-          {isLoggedIn && <button type="button" onClick={handleLogout} className="text-on-surface-variant hover:text-primary transition-colors duration-200">Log Out</button>}
-        </div>
-      </header>
+      <AppHeader
+        nav={isLoggedIn ? VAULT_NAV : [{ label: 'Login', to: '/login' }]}
+        navLabel={isLoggedIn ? 'Vault sections' : 'Main'}
+        action={
+          isLoggedIn ? (
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="inline-flex items-center min-h-11 font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors duration-200"
+            >
+              Log Out
+            </button>
+          ) : undefined
+        }
+      />
 
       <main className="flex-grow flex flex-col md:flex-row px-margin-safe py-12 md:py-24 gap-12 md:gap-24 relative overflow-hidden">
         <div className="w-full md:w-1/2 flex flex-col z-10 md:mt-hero-offset">

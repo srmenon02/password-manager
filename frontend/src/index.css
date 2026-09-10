@@ -157,6 +157,26 @@ body {
   }
 }
 
+/* The mobile nav row scrolls, so its scrollbar is part of the design rather than a
+   browser default; overscroll-contain keeps a swipe off the page's back gesture. */
+.nav-scroll {
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #c0c9c3 transparent;
+}
+
+.nav-scroll::-webkit-scrollbar {
+  height: 3px;
+}
+
+.nav-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.nav-scroll::-webkit-scrollbar-thumb {
+  background: #c0c9c3;
+}
+
 .custom-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;

@@ -1,5 +1,6 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { usePageMeta } from '@/hooks/usePageMeta'
+import AppHeader from '@/components/AppHeader'
 
 function NotFoundPage() {
   usePageMeta('Page Not Found · cipher', "The page you're looking for doesn't exist.")
@@ -7,13 +8,12 @@ function NotFoundPage() {
 
   return (
     <div className="bg-paper text-on-surface font-body-md min-h-screen flex flex-col">
-      <header className="w-full min-h-16 py-2 bg-paper flex flex-wrap gap-x-4 gap-y-2 justify-between items-center px-gutter max-w-full z-50 relative">
-        <Link to="/" className="font-headline-md text-headline-md text-primary tracking-tighter hover:opacity-75 transition-opacity">cipher</Link>
-        <nav className="flex flex-wrap items-center gap-x-5 gap-y-1 md:gap-8">
-          <Link to="/login" className="text-on-surface-variant font-body-md cursor-pointer hover:text-primary transition-colors duration-200">Login</Link>
-          <Link to="/register" className="text-on-surface-variant font-body-md cursor-pointer hover:text-primary transition-colors duration-200">Create Account</Link>
-        </nav>
-      </header>
+      <AppHeader
+        nav={[
+          { label: 'Login', to: '/login' },
+          { label: 'Create Account', to: '/register' },
+        ]}
+      />
 
       <main className="flex-grow flex items-center relative overflow-hidden px-gutter py-32 md:py-hero-offset">
         <div

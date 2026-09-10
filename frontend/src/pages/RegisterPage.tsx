@@ -9,6 +9,7 @@ import { registerUser } from '@/services/api'
 import { useVault } from '@/context/VaultContext'
 import { createEmptyVault } from '@/models/vault'
 import { usePageMeta } from '@/hooks/usePageMeta'
+import AppHeader from '@/components/AppHeader'
 
 export default function RegisterPage() {
   usePageMeta(
@@ -123,12 +124,12 @@ export default function RegisterPage() {
 
   return (
     <div className="bg-paper text-ink min-h-screen flex flex-col antialiased selection:bg-mint selection:text-ink">
-      <Link
-        to="/"
-        className="absolute top-0 left-0 px-margin-safe lg:px-gutter h-16 flex items-center font-headline-md text-headline-md font-bold text-primary tracking-tighter hover:opacity-75 transition-opacity z-10"
-      >
-        cipher
-      </Link>
+      <AppHeader
+        nav={[
+          { label: 'Login', to: '/login' },
+          { label: 'Generator', to: '/generator' },
+        ]}
+      />
 
       <main className="flex-grow flex flex-col lg:flex-row relative">
         <div className="hidden lg:flex w-full lg:w-1/2 items-center justify-center bg-surface-container-highest p-margin-safe border-r border-taupe">
@@ -142,7 +143,7 @@ export default function RegisterPage() {
           </div>
         </div>
 
-        <div className="w-full flex items-center p-margin-safe pt-24 lg:p-[120px] bg-paper lg:w-1/2">
+        <div className="w-full flex items-center p-margin-safe pt-12 lg:p-[120px] bg-paper lg:w-1/2">
           <div className="w-full max-w-md mx-auto">
             <h1 className="font-headline-md text-headline-md font-bold text-ink mb-12">Create Account</h1>
 

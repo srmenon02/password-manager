@@ -1,6 +1,6 @@
 import { loginInit, loginVerify, getVault } from '@/services/api'
 import { FormEvent, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { generateEphemeralA, bytesToHex, base64ToBytes, hexToBytes, bytesToBase64 } from '@/crypto/srp'
 import srp from 'secure-remote-password/client'
 import { deriveKey } from '@/crypto/keyDerivation'
@@ -8,6 +8,7 @@ import { unwrapKey } from '@/crypto/keyWrapping'
 import { decryptVault, base64ToArrayBuffer } from '@/crypto/vaultEncryption'
 import { useVault } from '@/context/VaultContext'
 import { usePageMeta } from '@/hooks/usePageMeta'
+import AppHeader from '@/components/AppHeader'
 
 export default function LoginPage() {
   usePageMeta(
@@ -80,16 +81,13 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex flex-col font-body-md overflow-x-hidden bg-paper text-ink">
-      <header className="w-full min-h-16 py-2 bg-paper flex flex-wrap gap-x-4 gap-y-2 justify-between items-center px-gutter max-w-full z-50 sticky top-0">
-        <Link to="/" className="font-headline-md text-headline-md text-primary tracking-tighter hover:opacity-75 transition-opacity">cipher</Link>
-        <nav className="flex flex-wrap items-center gap-x-5 gap-y-1 md:gap-8">
-          <Link to="/vault" className="text-on-surface-variant font-body-md cursor-pointer hover:text-primary transition-colors duration-200">Vault</Link>
-          <Link to="/generator" className="text-on-surface-variant font-body-md cursor-pointer hover:text-primary transition-colors duration-200">Generator</Link>
-          <div className="flex items-center gap-4 ml-4">
-            <Link to="/register" className="text-on-surface-variant font-body-md cursor-pointer hover:text-primary transition-colors duration-200">Create Login</Link>
-          </div>
-        </nav>
-      </header>
+      <AppHeader
+        nav={[
+          { label: 'Vault', to: '/vault' },
+          { label: 'Generator', to: '/generator' },
+          { label: 'Create Login', to: '/register' },
+        ]}
+      />
 
       <main className="flex-grow flex flex-col px-margin-safe py-hero-offset md:py-32 items-center">
         <div className="w-full flex flex-col items-center text-center bg-surface-container-low text-ink p-8 md:p-12 rounded-3xl shadow-2xl">
@@ -137,12 +135,6 @@ export default function LoginPage() {
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
                 <span className="material-symbols-outlined" aria-hidden="true">{showPassword ? 'visibility_off' : 'visibility'}</span>
-              </button>
-            </div>
-
-            <div className="flex justify-center items-center mt-4">
-              <button type="button" className="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors border-b border-transparent hover:border-primary">
-                Lost key?
               </button>
             </div>
 
