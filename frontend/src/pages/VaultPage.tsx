@@ -103,21 +103,11 @@ export default function VaultPage() {
     saveVault,
   } = useVault()
 
-  // Arriving from the breach page's "Change Password" opens that entry for editing.
-  // Resolved before useState so it seeds the form directly instead of through an effect.
-  const routeState = location.state as VaultRouteState | null
-  const requestedEditId = routeState?.editEntryId
-  const deepLinkedEntry = requestedEditId
-    ? vaultData?.entries.find((entry) => entry.id === requestedEditId) ?? null
-    : null
-
-  const [formState, setFormState] = useState<VaultEntryInput>(
-    deepLinkedEntry ? entryToFormState(deepLinkedEntry) : defaultFormState
-  )
-  const [editingId, setEditingId] = useState<string | null>(deepLinkedEntry?.id ?? null)
+  const [formState, setFormState] = useState<VaultEntryInput>(defaultFormState)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
-  const [isSheetOpen, setIsSheetOpen] = useState(Boolean(deepLinkedEntry) || Boolean(routeState?.addEntry))
+  const [isSheetOpen, setIsSheetOpen] = useState(false)
   const [chainStatus, setChainStatus] = useState<'pending' | 'intact' | 'broken' | 'unavailable'>(
     'pending'
   )
@@ -139,18 +129,38 @@ export default function VaultPage() {
     }
   }, [navigate])
 
+  // Opens the sheet for a handoff from elsewhere: the breach page's "Change Password", or the
+  // command palette's add/edit. Tracked by location.key rather than seeded at mount, because the
+  // palette is usually already on /vault — a same-route navigate() re-renders without
+  // remounting, so a useState initializer would never see the state. Adjusted during render
+  // rather than in an effect so the sheet opens in the same commit as the navigation.
+  const handoff = location.state as VaultRouteState | null
+  const pendingHandoffKey = handoff?.editEntryId || handoff?.addEntry ? location.key : null
+  const [consumedHandoffKey, setConsumedHandoffKey] = useState<string | null>(null)
+
+  if (pendingHandoffKey && pendingHandoffKey !== consumedHandoffKey) {
+    const target = handoff?.editEntryId
+      ? vaultData?.entries.find((candidate) => candidate.id === handoff.editEntryId)
+      : undefined
+
+    // On a cold deep link the vault may still be decrypting. Leave the handoff unconsumed so it
+    // resolves once entries arrive, rather than opening an editor on nothing.
+    if (!handoff?.editEntryId || target) {
+      setConsumedHandoffKey(pendingHandoffKey)
+      setFormState(target ? entryToFormState(target) : defaultFormState)
+      setEditingId(target?.id ?? null)
+      setIsSheetOpen(true)
+    }
+  }
+
   useEffect(() => {
-    if (!deepLinkedEntry && !routeState?.addEntry) {
+    if (!pendingHandoffKey || pendingHandoffKey !== consumedHandoffKey) {
       return
     }
-
     // Consume the handoff so a reload, or coming Back to the vault later, does not
     // silently reopen the editor on an entry the user has moved on from.
     navigate(location.pathname, { replace: true, state: null })
-    // Mount-only: the form state was already seeded from this entry above, and the
-    // navigate() call below clears the route state this depends on.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [pendingHandoffKey, consumedHandoffKey, navigate, location.pathname])
 
   useEffect(() => {
     const password = formState.password

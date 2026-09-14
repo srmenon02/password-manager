@@ -119,6 +119,13 @@ body {
   box-shadow: none;
 }
 
+/* The palette's search field sits flush inside the panel's bordered header row, so the shared
+   +2px offset would paint over that border. Drawn inset instead. */
+.palette-input:focus-visible {
+  outline: 2px solid #336857;
+  outline-offset: -4px;
+}
+
 /* Slide-over: <dialog> supplies the modal semantics, these rules give it the
    world's flat edges and a right-anchored (desktop) / bottom (mobile) entrance. */
 .sheet {

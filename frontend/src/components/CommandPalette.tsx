@@ -35,8 +35,21 @@ export default function CommandPalette() {
     }
 
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key.toLowerCase() === 'k' && (event.metaKey || event.ctrlKey)) {
+      // Shift and Alt have to be excluded explicitly: toLowerCase() folds the 'K' that Shift
+      // produces, so a bare key check would swallow Ctrl+Shift+K (the browser's own console).
+      // event.repeat guards a held chord from toggling showModal()/close() every keypress.
+      if (
+        event.key.toLowerCase() === 'k' &&
+        (event.metaKey || event.ctrlKey) &&
+        !event.shiftKey &&
+        !event.altKey &&
+        !event.repeat
+      ) {
         event.preventDefault()
+        // Reset the way closePalette() does, so dismissing with the chord cannot leave a stale
+        // query to reappear — with the credential it matched — on the next open.
+        setQuery('')
+        setActiveIndex(0)
         setOpen((current) => !current)
       }
     }
@@ -225,7 +238,7 @@ export default function CommandPalette() {
             aria-label="Search credentials or commands"
             autoComplete="off"
             spellCheck={false}
-            className="flex-1 min-h-14 bg-transparent border-0 outline-none font-body-lg text-body-lg text-ink placeholder:text-on-surface-variant"
+            className="palette-input flex-1 min-h-14 bg-transparent border-0 font-body-lg text-body-lg text-ink placeholder:text-on-surface-variant"
             placeholder="Search credentials or a command…"
             value={query}
             onChange={(event) => {

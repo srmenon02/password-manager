@@ -36,15 +36,18 @@ function charsetSize(password: string) {
   return CHARSETS.reduce((total, [pattern, size]) => (pattern.test(password) ? total + size : total), 0)
 }
 
-// A repeated or sequential character carries far less than a fresh one, so it counts half.
-// Without this, "abcdefgh" and "aaaaaaaa" score like eight independent picks.
+// A repeated or sequential character carries far less than a fresh one. The discount has to
+// decay rather than stay flat: at a fixed half-credit a long run still accrues entropy without
+// bound, so "aaaa..." and "abcdef..." climb to "excellent" on length alone. Charging the nth
+// character of a run 1/(n+1) makes the whole run worth ~ln(n), which is what an attacker who
+// guesses "it is a run" actually has to search.
 function effectiveLength(password: string) {
   let length = 0
+  let run = 0
   for (let i = 0; i < password.length; i += 1) {
-    const previous = password.charCodeAt(i - 1)
-    const current = password.charCodeAt(i)
-    const isRun = i > 0 && Math.abs(current - previous) <= 1
-    length += isRun ? 0.5 : 1
+    const isRun = i > 0 && Math.abs(password.charCodeAt(i) - password.charCodeAt(i - 1)) <= 1
+    run = isRun ? run + 1 : 0
+    length += run === 0 ? 1 : 1 / (run + 1)
   }
   return length
 }
