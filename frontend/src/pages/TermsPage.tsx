@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { usePageMeta } from '@/hooks/usePageMeta'
+import AppHeader from '@/components/AppHeader'
 
 export default function TermsPage() {
   usePageMeta(
@@ -9,13 +10,12 @@ export default function TermsPage() {
 
   return (
     <div className="bg-paper text-ink font-body-md min-h-screen flex flex-col">
-      <header className="w-full min-h-16 py-2 bg-paper flex flex-wrap gap-x-4 gap-y-2 justify-between items-center px-gutter max-w-full z-50 sticky top-0 border-b border-surface-dim">
-        <Link to="/" className="font-headline-md text-headline-md text-primary tracking-tighter hover:opacity-75 transition-opacity">cipher</Link>
-        <nav className="flex flex-wrap items-center gap-x-5 gap-y-1 md:gap-8">
-          <Link to="/login" className="text-on-surface-variant font-body-md hover:text-primary transition-colors duration-200">Login</Link>
-          <Link to="/privacy" className="text-on-surface-variant font-body-md hover:text-primary transition-colors duration-200">Privacy</Link>
-        </nav>
-      </header>
+      <AppHeader
+        nav={[
+          { label: 'Login', to: '/login' },
+          { label: 'Privacy', to: '/privacy' },
+        ]}
+      />
 
       <main className="flex-grow w-full px-margin-safe py-16 md:py-24">
         <div className="max-w-3xl mx-auto flex flex-col gap-10">

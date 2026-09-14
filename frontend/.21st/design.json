@@ -1,0 +1,41 @@
+{
+  "decisions": [
+    {
+      "date": "2026-09-10",
+      "surface": "src/pages/VaultPage.tsx",
+      "chosen": "quiet-ledger",
+      "rejected": [
+        "keyboard-first-palette",
+        "security-posture-forward"
+      ],
+      "summary": "Add/edit form moved into a <dialog> slide-over (right on desktop, bottom sheet on mobile); entry cards replaced by a hairline-ruled list with quiet row actions; transient confirmations moved to a toast stack while save/clipboard failures stay as inline alerts.",
+      "references": [
+        "https://21st.dev/@cnippet-dev/components/v-sheet-1",
+        "https://21st.dev/@ddoemonn/components/drawer",
+        "https://21st.dev/@cnippet-dev/components/toast"
+      ],
+      "constraints": "Existing tokens only (paper/ink/mint/primary), Noto Serif, zero radius, 2px ink borders and block shadows, Material Symbols, 44px touch targets, prefers-reduced-motion honored. No new runtime dependencies."
+    },
+    {
+      "date": "2026-09-10",
+      "surface": "src/components/CommandPalette.tsx",
+      "chosen": "keyboard-first-palette",
+      "summary": "⌘K / Ctrl+K palette mounted once for any unlocked session: credentials (↵ copies the password, ⌘↵ opens it for editing) plus navigation, add-credential and lock-vault actions. Combobox + listbox semantics with aria-activedescendant; native <dialog> for the focus trap and Esc. A ⌘K keycap hint sits in the vault search field at md and up only — the inline field stays the primary path on touch.",
+      "references": [
+        "https://21st.dev/@ddoemonn/components/command-palette",
+        "https://21st.dev/@rafa-porto/components/command-palette",
+        "https://21st.dev/@laziekiki/components/keyboard-shortcuts"
+      ]
+    },
+    {
+      "date": "2026-09-10",
+      "surface": "src/pages/VaultPage.tsx",
+      "chosen": "security-posture-forward",
+      "summary": "Posture sentence under the vault heading (count · reuse · breaches · audit-chain state, the last two linking to their pages), deliberately a sentence rather than the banned hero-metric tile row. Per-row segmented strength meters plus a quiet REUSED badge; the sheet's password field shows the meter with ≈bits, or names the common-word pattern when the entropy estimate would overstate it. Audit-chain clause only renders once verifyAuditLog succeeds.",
+      "references": [
+        "https://21st.dev/@ddoemonn/components/password-strength",
+        "https://21st.dev/@preetsuthar17/components/password-strength-meter"
+      ]
+    }
+  ]
+}

@@ -1,5 +1,11 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { usePageMeta } from '@/hooks/usePageMeta'
+import AppHeader from '@/components/AppHeader'
+import {
+  heroAction,
+  heroLabel,
+  primaryAction,
+} from '@/components/controlStyles'
 
 function HomePage() {
   const navigate = useNavigate()
@@ -10,22 +16,21 @@ function HomePage() {
 
   return (
     <div className="bg-paper text-on-surface font-body-md min-h-screen flex flex-col">
-      <header className="w-full min-h-16 py-2 bg-paper flex flex-wrap gap-x-4 gap-y-2 justify-between items-center px-gutter max-w-full z-50 relative">
-        <div className="font-headline-md text-headline-md text-primary tracking-tighter">cipher</div>
-        <div className="flex items-center gap-6 md:gap-8">
-          <nav className="flex flex-wrap items-center gap-x-5 gap-y-1 md:gap-8">
-            <Link to="/login" className="text-on-surface-variant font-body-md cursor-pointer hover:text-primary transition-colors duration-200">Login</Link>
-            <Link to="/generator" className="text-on-surface-variant font-body-md cursor-pointer hover:text-primary transition-colors duration-200">Generator</Link>
-          </nav>
+      <AppHeader
+        nav={[
+          { label: 'Login', to: '/login' },
+          { label: 'Generator', to: '/generator' },
+        ]}
+        action={
           <button
             type="button"
-            className="vault-btn-primary min-h-11 px-4 inline-flex items-center font-body-md text-sm uppercase tracking-wider"
+            className={`${primaryAction} hidden md:inline-flex`}
             onClick={() => navigate('/register')}
           >
-            Get Started
+            Get started
           </button>
-        </div>
-      </header>
+        }
+      />
 
       <main className="flex-grow">
         <section className="w-full px-gutter pt-24 pb-24 md:pt-48 md:pb-56">
@@ -37,12 +42,8 @@ function HomePage() {
               Zero-knowledge encryption and authentication, ensuring your secrets are both safe and accessible.
             </p>
             <div className="pt-4">
-              <button
-                type="button"
-                className="shine-button font-body-md min-h-11 px-8 py-4 uppercase tracking-wider"
-                onClick={() => navigate('/register')}
-              >
-                Get Started
+              <button type="button" className={heroAction} onClick={() => navigate('/register')}>
+                <span className={heroLabel}>Get started</span>
               </button>
             </div>
           </div>
@@ -89,7 +90,7 @@ function HomePage() {
       <div className="md:hidden fixed bottom-0 inset-x-0 z-50 border-t border-ink bg-paper px-gutter py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
         <button
           type="button"
-          className="vault-btn-primary w-full min-h-11 px-4 py-3 font-body-md text-sm uppercase tracking-wider"
+          className={`${primaryAction} w-full`}
           onClick={() => navigate('/register')}
         >
           Create your vault

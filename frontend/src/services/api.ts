@@ -279,25 +279,54 @@ export async function registerSharingKeys(
   }
 }
 
-export async function getSharingKeys(token: string): Promise<{
+export interface SharingKeyMaterial {
   sharing_public_key: string
   encrypted_private_key: string
   encrypted_private_key_iv: string
   algorithm: string
-}> {
-  const response = await fetch(`${API_URL}/api/share/keys`, {
-    method: 'GET',
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  })
+}
 
-  if (!response.ok) {
-    const errorData: ErrorResponse & { detail?: { message?: string } } = await response.json()
-    throw new Error(errorData.message || errorData.detail?.message || 'Failed to load sharing keys')
+/**
+ * Three-way on purpose: registering keys overwrites whatever is stored, which would strand
+ * every item already shared to this user. "Nobody has registered keys yet" and "the server
+ * could not be asked" must therefore stay distinguishable to the caller.
+ */
+export type SharingKeysResult =
+  | { status: 'ready'; keys: SharingKeyMaterial }
+  | { status: 'missing' }
+  | { status: 'unavailable'; message: string }
+
+export async function loadSharingKeys(token: string): Promise<SharingKeysResult> {
+  let response: Response
+
+  try {
+    response = await fetch(`${API_URL}/api/share/keys`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+  } catch {
+    return { status: 'unavailable', message: 'Could not reach the server to check your sharing keys' }
   }
 
-  return response.json()
+  if (response.ok) {
+    return { status: 'ready', keys: (await response.json()) as SharingKeyMaterial }
+  }
+
+  const errorData: Partial<ErrorResponse> & { detail?: { error?: string; message?: string } } =
+    await response.json().catch(() => ({}))
+  const code = errorData.detail?.error ?? errorData.error
+
+  if (code === 'recipient_missing_key' || code === 'recipient_missing_private_key') {
+    return { status: 'missing' }
+  }
+
+  return {
+    status: 'unavailable',
+    message:
+      errorData.message || errorData.detail?.message || 'Could not check whether you have sharing keys',
+  }
 }
 
 export async function initShare(
