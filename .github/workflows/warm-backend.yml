@@ -1,0 +1,29 @@
+name: Warm backend
+
+# Stands in for `min_machines_running = 1` on fly: traffic every few minutes keeps the
+# machine from idling out, so a real user never pays the boot cost. GitHub delays or drops
+# scheduled runs under load, and disables the schedule outright after 60 days of repo
+# inactivity, so this narrows the cold-start window rather than closing it — which is why
+# fly.toml also uses `auto_stop_machines = "suspend"` to make the misses cheap.
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: warm-backend
+  cancel-in-progress: true
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping /health
+        run: |
+          curl -fsS --max-time 30 --retry 2 --retry-connrefused \
+            -o /dev/null \
+            -w 'ttfb=%{time_starttransfer}s status=%{http_code}\n' \
+            https://cipher-api.fly.dev/health
