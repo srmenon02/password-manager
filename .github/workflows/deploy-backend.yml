@@ -53,6 +53,13 @@ jobs:
       - name: Deploy
         run: flyctl deploy --remote-only
 
+      # SRP login state lives in each worker's memory unless REDIS_URL is set, so a
+      # second machine can answer step 2 of a login that started on the first and
+      # the challenge goes missing. Pinned on every deploy rather than scaled down
+      # once by hand, so the app cannot drift back to HA.
+      - name: Pin to a single machine
+        run: flyctl scale count 1 --process-group app --yes
+
       # fly reports the release complete once machines pass their own checks, but
       # that does not prove the app answers over the public edge.
       - name: Smoke-check /health

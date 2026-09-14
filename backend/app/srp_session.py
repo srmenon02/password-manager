@@ -1,5 +1,7 @@
 import json
 
+from app.config import settings
+
 try:
     import redis
 except ImportError:  # pragma: no cover - optional dependency fallback
@@ -21,11 +23,14 @@ class InMemorySessionStore:
 
 
 def _build_session_store():
-    if redis is None:
+    url = settings.REDIS_URL
+    if not url or redis is None:
         return InMemorySessionStore()
 
     try:
-        client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+        # Bounded: this ping runs at import, before uvicorn binds the port, so an
+        # unreachable Redis would otherwise add its full retry budget to every cold start.
+        client = redis.from_url(url, decode_responses=True, socket_connect_timeout=1, socket_timeout=1)
         client.ping()
         return client
     except Exception:

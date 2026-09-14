@@ -13,7 +13,7 @@ Note: `README.md`, `backend/README.md`, `.github/copilot-instructions.md`, and `
 - **Frontend**: React 18 + TypeScript + Vite, Tailwind CSS, react-router-dom. Dev server on port 3000.
 - **Backend**: Python + FastAPI + SQLAlchemy 2.0 + Alembic, running on port 8000 (see `backend/app/config.py`).
 - **DB**: PostgreSQL (via `docker-compose.yml`); backend tests use SQLite instead (see Testing below).
-- **Sessions**: Redis for in-flight SRP login state (`backend/app/srp_session.py`), with an in-memory fallback (`InMemorySessionStore`) when Redis is unreachable — don't assume Redis is always present.
+- **Sessions**: Redis for in-flight SRP login state (`backend/app/srp_session.py`), enabled only when `REDIS_URL` is set; otherwise, or if the connect fails, it falls back to `InMemorySessionStore` — don't assume Redis is always present. The store is built at import, so the connect is bounded: an unbounded ping there lands on every cold start before uvicorn binds its port. In-memory sessions are per-process, so a login's two SRP round trips must reach the same worker.
 - **Shared types**: `shared/src/types.ts`, imported by the frontend as `@shared/*` (path alias in `frontend/vite.config.ts` / `tsconfig.json`).
 
 ## Commands

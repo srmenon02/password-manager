@@ -51,7 +51,10 @@ def ensure_schema_compatibility() -> None:
     Base.metadata.create_all(bind=engine)
 
 
-ensure_schema_compatibility()
+# Production schema is owned by the `alembic upgrade head` release command; running the
+# shim there costs a full reflect + create_all round trip on every cold start.
+if settings.ENVIRONMENT != "production":
+    ensure_schema_compatibility()
 
 
 app = FastAPI(
