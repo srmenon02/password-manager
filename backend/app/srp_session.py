@@ -1,5 +1,6 @@
 import json
-import os
+
+from app.config import settings
 
 try:
     import redis
@@ -22,7 +23,7 @@ class InMemorySessionStore:
 
 
 def _build_session_store():
-    url = os.getenv("REDIS_URL")
+    url = settings.REDIS_URL
     if not url or redis is None:
         return InMemorySessionStore()
 
